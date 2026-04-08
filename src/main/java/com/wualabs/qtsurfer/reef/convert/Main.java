@@ -24,7 +24,7 @@ import java.util.Map;
  *     --inspect                      Show Parquet schema and exit
  *
  *   Types:  long, double, binary
- *   Codecs: delta_varint, alp, raw, varlen, varlen_zstd, varlen_gzip
+ *   Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
  *
  *   Examples:
  *     reef-convert data.parquet
@@ -45,6 +45,8 @@ public final class Main {
 
         CODEC_MAP.put("delta_varint", Codec.DELTA_VARINT);
         CODEC_MAP.put("alp", Codec.ALP);
+        CODEC_MAP.put("gorilla", Codec.GORILLA);
+        CODEC_MAP.put("pongo", Codec.PONGO);
         CODEC_MAP.put("raw", Codec.RAW);
         CODEC_MAP.put("varlen", Codec.VARLEN);
         CODEC_MAP.put("varlen_zstd", Codec.VARLEN_ZSTD);
@@ -185,7 +187,7 @@ public final class Main {
         System.out.println("  --inspect                      Show Parquet schema and exit");
         System.out.println();
         System.out.println("Types:  long, double, binary");
-        System.out.println("Codecs: delta_varint, alp, raw, varlen, varlen_zstd, varlen_gzip");
+        System.out.println("Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  reef-convert data.parquet");

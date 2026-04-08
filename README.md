@@ -32,7 +32,7 @@ Options:
   --inspect                      Show Parquet schema and exit
 
 Types:  long, double, binary
-Codecs: delta_varint, alp, raw, varlen, varlen_zstd, varlen_gzip
+Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
 ```
 
 ### Auto-detect mode
@@ -133,7 +133,7 @@ Column renaming is supported:
 ## Requirements
 
 - Java 11+
-- [reef](https://github.com/QTSurfer/reef-java) 0.5.0
+- [reef](https://github.com/QTSurfer/reef-java) 0.6.0
 - [parquet-lite](https://github.com/QTSurfer/parquet-lite) 2.0.0
 
 ## License
