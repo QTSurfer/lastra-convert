@@ -7,9 +7,7 @@ import com.wualabs.qtsurfer.reef.Reef.DataType;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,17 +18,13 @@ import java.util.Map;
  *   reef-convert &lt;input.parquet&gt; [output.reef] [options]
  *
  *   Options:
- *     --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect from schema)
+ *     --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect, ALP for doubles)
+ *     --smart                        Auto-select best codec per column (sample-based, fast)
+ *     --best                         Try all codecs per column, pick smallest (slower, optimal)
  *     --inspect                      Show Parquet schema and exit
  *
  *   Types:  long, double, binary
  *   Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
- *
- *   Examples:
- *     reef-convert data.parquet
- *     reef-convert data.parquet output.reef
- *     reef-convert data.parquet --columns t:long:delta_varint,close:double:alp
- *     reef-convert data.parquet --inspect
  * </pre>
  */
 public final class Main {
@@ -63,14 +57,19 @@ public final class Main {
         String outputPath = null;
         String columnsArg = null;
         boolean inspect = false;
+        boolean smart = false;
+        boolean best = false;
 
         for (int i = 1; i < args.length; i++) {
-            if ("--inspect".equals(args[i])) {
-                inspect = true;
-            } else if ("--columns".equals(args[i]) && i + 1 < args.length) {
-                columnsArg = args[++i];
-            } else if (!args[i].startsWith("--")) {
-                outputPath = args[i];
+            switch (args[i]) {
+                case "--inspect": inspect = true; break;
+                case "--smart": smart = true; break;
+                case "--best": best = true; break;
+                case "--columns":
+                    if (i + 1 < args.length) columnsArg = args[++i];
+                    break;
+                default:
+                    if (!args[i].startsWith("--")) outputPath = args[i];
             }
         }
 
@@ -85,7 +84,6 @@ public final class Main {
             return;
         }
 
-        // Default output: same name with .reef extension
         if (outputPath == null) {
             String name = inputFile.getName();
             int dot = name.lastIndexOf('.');
@@ -93,27 +91,45 @@ public final class Main {
             outputPath = new File(inputFile.getParentFile(), base + ".reef").getPath();
         }
 
-        // Build converter
-        ParquetToReefConverter.Builder builder = ParquetToReefConverter.builder(inputFile);
-
-        if (columnsArg != null) {
-            parseColumns(columnsArg, builder);
-        } else {
-            autoDetectColumns(inputFile, builder);
-        }
-
-        ParquetToReefConverter converter = builder.build();
-
         File outputFile = new File(outputPath);
-        try (FileOutputStream out = new FileOutputStream(outputFile)) {
-            int rows = converter.convert(out);
-            long reefSize = outputFile.length();
-            long parquetSize = inputFile.length();
-            double ratio = parquetSize > 0 ? (double) parquetSize / reefSize : 0;
 
-            System.out.printf("Converted %,d rows → %s (%,d bytes, %.1fx compression vs parquet)%n",
-                    rows, outputFile.getName(), reefSize, ratio);
+        if (smart || best) {
+            // Smart/best mode: auto-select codec per double column
+            SmartParquetToReefConverter.Mode mode = best
+                    ? SmartParquetToReefConverter.Mode.BEST
+                    : SmartParquetToReefConverter.Mode.SMART;
+
+            SmartParquetToReefConverter converter = SmartParquetToReefConverter.create(inputFile, mode);
+
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                int rows = converter.convert(out);
+                printResult(inputFile, outputFile, rows);
+            }
+        } else {
+            // Standard mode: explicit columns or auto-detect with ALP default
+            ParquetToReefConverter.Builder builder = ParquetToReefConverter.builder(inputFile);
+
+            if (columnsArg != null) {
+                parseColumns(columnsArg, builder);
+            } else {
+                autoDetectColumns(inputFile, builder);
+            }
+
+            ParquetToReefConverter converter = builder.build();
+
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                int rows = converter.convert(out);
+                printResult(inputFile, outputFile, rows);
+            }
         }
+    }
+
+    private static void printResult(File inputFile, File outputFile, int rows) {
+        long reefSize = outputFile.length();
+        long parquetSize = inputFile.length();
+        double ratio = parquetSize > 0 ? (double) parquetSize / reefSize : 0;
+        System.out.printf("%nConverted %,d rows → %s (%,d bytes, %.1fx compression vs parquet)%n",
+                rows, outputFile.getName(), reefSize, ratio);
     }
 
     private static void parseColumns(String columnsArg, ParquetToReefConverter.Builder builder) {
@@ -150,18 +166,15 @@ public final class Main {
             Codec codec;
 
             switch (parquetType) {
-                case INT64:
-                case INT32:
+                case INT64: case INT32:
                     dataType = DataType.LONG;
                     codec = Codec.DELTA_VARINT;
                     break;
-                case DOUBLE:
-                case FLOAT:
+                case DOUBLE: case FLOAT:
                     dataType = DataType.DOUBLE;
                     codec = Codec.ALP;
                     break;
-                case BINARY:
-                case FIXED_LEN_BYTE_ARRAY:
+                case BINARY: case FIXED_LEN_BYTE_ARRAY:
                     dataType = DataType.BINARY;
                     codec = Codec.VARLEN_ZSTD;
                     break;
@@ -184,6 +197,8 @@ public final class Main {
         System.out.println();
         System.out.println("Options:");
         System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect)");
+        System.out.println("  --smart                        Auto-select best codec per column (fast)");
+        System.out.println("  --best                         Try all codecs per column (optimal)");
         System.out.println("  --inspect                      Show Parquet schema and exit");
         System.out.println();
         System.out.println("Types:  long, double, binary");
@@ -191,7 +206,8 @@ public final class Main {
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  reef-convert data.parquet");
-        System.out.println("  reef-convert data.parquet output.reef");
-        System.out.println("  reef-convert data.parquet --columns t:long:delta_varint,close:double:alp");
+        System.out.println("  reef-convert data.parquet --smart");
+        System.out.println("  reef-convert data.parquet --best");
+        System.out.println("  reef-convert data.parquet --columns t:long:delta_varint,close:double:pongo");
     }
 }
