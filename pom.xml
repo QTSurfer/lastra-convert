@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.wualabs.qtsurfer</groupId>
+    <artifactId>reef-convert</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>QTSurfer Reef Convert</name>
+    <description>Convert financial time series data to Reef format. Supports Parquet input (via parquet-lite),
+        with extensible design for additional sources (CSV, etc.).</description>
+    <url>https://github.com/QTSurfer/qtsurfer-reef-convert</url>
+
+    <scm>
+        <connection>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</connection>
+        <url>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</url>
+        <developerConnection>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>mrmx</name>
+            <organization>Wualabs</organization>
+            <organizationUrl>https://wualabs.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>11</maven.compiler.release>
+        <reef.version>0.5.0</reef.version>
+        <parquet-lite.version>2.0.0</parquet-lite.version>
+        <junit.version>5.11.4</junit.version>
+        <assertj.version>3.27.3</assertj.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.wualabs.qtsurfer</groupId>
+            <artifactId>reef</artifactId>
+            <version>${reef.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.wualabs.qtsurfer</groupId>
+            <artifactId>parquet-lite</artifactId>
+            <version>${parquet-lite.version}</version>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
