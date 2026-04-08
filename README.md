@@ -1,7 +1,6 @@
 # Reef Convert
 
 [![CI](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml)
-[![JitPack](https://jitpack.io/v/QTSurfer/qtsurfer-reef-convert.svg)](https://jitpack.io/#QTSurfer/qtsurfer-reef-convert)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Convert financial time series data to [Reef](https://github.com/QTSurfer/reef-java) format.
