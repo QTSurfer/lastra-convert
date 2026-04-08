@@ -39,7 +39,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
-        <reef.version>0.6.0</reef.version>
+        <reef.version>0.6.1</reef.version>
         <parquet-lite.version>2.0.0</parquet-lite.version>
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
@@ -54,12 +54,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.wualabs.qtsurfer</groupId>
-            <artifactId>reef</artifactId>
+            <groupId>com.github.qtsurfer</groupId>
+            <artifactId>reef-java</artifactId>
             <version>${reef.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.wualabs.qtsurfer</groupId>
+            <groupId>com.github.qtsurfer</groupId>
             <artifactId>parquet-lite</artifactId>
             <version>${parquet-lite.version}</version>
         </dependency>

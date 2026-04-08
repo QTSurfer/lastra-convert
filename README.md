@@ -154,7 +154,7 @@ Column renaming is supported:
 ## Requirements
 
 - Java 11+
-- [reef](https://github.com/QTSurfer/reef-java) 0.6.0
+- [reef](https://github.com/QTSurfer/reef-java) 0.6.1
 - [parquet-lite](https://github.com/QTSurfer/parquet-lite) 2.0.0
 
 ## License
