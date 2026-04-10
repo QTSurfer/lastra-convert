@@ -234,8 +234,8 @@ ReefToParquetConverter.inspect(new File("data.reef"));
 ## Requirements
 
 - Java 11+
-- [reef](https://github.com/QTSurfer/reef-java) 0.6.1
-- [parquet-lite](https://github.com/QTSurfer/parquet-lite) 2.0.0
+- [reef-java](https://github.com/QTSurfer/reef-java)
+- [parquet-lite](https://github.com/QTSurfer/parquet-lite)
 
 ## License
 
