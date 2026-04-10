@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>QTSurfer Reef Convert</name>
-    <description>Convert financial time series data to Reef format. Supports Parquet input (via parquet-lite),
+    <description>Convert time series data to Reef format. Supports Parquet input (via parquet-lite),
         with extensible design for additional sources (CSV, etc.).</description>
     <url>https://github.com/QTSurfer/qtsurfer-reef-convert</url>
 

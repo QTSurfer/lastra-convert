@@ -3,7 +3,7 @@
 [![CI](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java) and Apache Parquet formats.
+Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java) and [Apache Parquet](https://parquet.apache.org/) formats for time series data.
 
 ## Supported conversions
 
