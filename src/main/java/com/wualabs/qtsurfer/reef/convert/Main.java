@@ -79,31 +79,59 @@ public final class Main {
             System.exit(1);
         }
 
-        // Detect direction by input file extension
-        boolean isReefInput = inputPath.endsWith(".reef");
+        // Detect format by input file extension
+        String inputLower = inputPath.toLowerCase();
+        boolean isReefInput = inputLower.endsWith(".reef");
+        boolean isCsvInput = inputLower.endsWith(".csv") || inputLower.endsWith(".tsv");
 
         if (inspect) {
             if (isReefInput) {
                 ReefToParquetConverter.inspect(inputFile);
+            } else if (isCsvInput) {
+                System.out.println("CSV inspect not supported. Use --inspect on .parquet or .reef files.");
             } else {
                 InspectParquet.main(new String[]{inputPath});
             }
             return;
         }
 
+        // Determine output extension
         if (outputPath == null) {
             String name = inputFile.getName();
             int dot = name.lastIndexOf('.');
             String base = dot > 0 ? name.substring(0, dot) : name;
-            String ext = isReefInput ? ".parquet" : ".reef";
+            String ext;
+            if (isReefInput) {
+                // Reef → default to Parquet, or CSV if output ends with .csv
+                ext = ".parquet";
+            } else {
+                // Parquet/CSV → Reef
+                ext = ".reef";
+            }
             outputPath = new File(inputFile.getParentFile(), base + ext).getPath();
         }
 
         File outputFile = new File(outputPath);
+        boolean outputCsv = outputPath.toLowerCase().endsWith(".csv")
+                || outputPath.toLowerCase().endsWith(".tsv");
 
-        if (isReefInput) {
+        if (isReefInput && outputCsv) {
+            // Reef → CSV
+            ReefToCsvConverter converter = new ReefToCsvConverter(inputFile);
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                int rows = converter.convert(out);
+                printResult(inputFile, outputFile, rows);
+            }
+        } else if (isReefInput) {
             // Reef → Parquet
             ReefToParquetConverter converter = new ReefToParquetConverter(inputFile);
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                int rows = converter.convert(out);
+                printResult(inputFile, outputFile, rows);
+            }
+        } else if (isCsvInput) {
+            // CSV → Reef
+            CsvToReefConverter converter = new CsvToReefConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
@@ -208,21 +236,27 @@ public final class Main {
     }
 
     private static void printUsage() {
-        System.out.println("Usage: reef-convert <input.parquet> [output.reef] [options]");
+        System.out.println("Usage: reef-convert <input> [output] [options]");
+        System.out.println();
+        System.out.println("Formats (auto-detected by extension):");
+        System.out.println("  .parquet/.pqt → Reef     .csv/.tsv → Reef");
+        System.out.println("  .reef → Parquet           .reef → CSV (if output is .csv)");
         System.out.println();
         System.out.println("Options:");
-        System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect)");
+        System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Reef)");
         System.out.println("  --smart                        Auto-select best codec per column (fast)");
         System.out.println("  --best                         Try all codecs per column (optimal)");
-        System.out.println("  --inspect                      Show Parquet schema and exit");
+        System.out.println("  --inspect                      Show file structure and exit");
         System.out.println();
         System.out.println("Types:  long, double, binary");
         System.out.println("Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip");
         System.out.println();
         System.out.println("Examples:");
-        System.out.println("  reef-convert data.parquet");
-        System.out.println("  reef-convert data.parquet --smart");
-        System.out.println("  reef-convert data.parquet --best");
-        System.out.println("  reef-convert data.parquet --columns t:long:delta_varint,close:double:pongo");
+        System.out.println("  reef-convert data.parquet                      # Parquet → Reef");
+        System.out.println("  reef-convert data.parquet --best               # Parquet → Reef (optimal)");
+        System.out.println("  reef-convert data.csv                          # CSV → Reef");
+        System.out.println("  reef-convert data.reef                         # Reef → Parquet");
+        System.out.println("  reef-convert data.reef output.csv              # Reef → CSV");
+        System.out.println("  reef-convert data.reef --inspect               # Inspect Reef file");
     }
 }

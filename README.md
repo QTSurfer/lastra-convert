@@ -3,15 +3,16 @@
 [![CI](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java) and [Apache Parquet](https://parquet.apache.org/) formats for time series data.
+Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java), [Apache Parquet](https://parquet.apache.org/), and CSV formats for time series data.
 
 ## Supported conversions
 
-| Direction | Status |
-|-----------|--------|
+| Source → Target | Status |
+|-----------------|--------|
 | Parquet → Reef | ✅ Ready (auto-detect, --smart, --best) |
 | Reef → Parquet | ✅ Ready (ZSTD compressed, lossless roundtrip) |
-| CSV → Reef | 🔜 Planned |
+| CSV → Reef | ✅ Ready (auto-detect types and delimiter) |
+| Reef → CSV | ✅ Ready (plain decimal output) |
 
 ## CLI
 
@@ -21,21 +22,22 @@ Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java) an
 mvn package
 ```
 
-This produces a fat JAR at `target/reef-convert-0.5.0.jar`.
+This produces a fat JAR at `target/reef-convert-0.7.0.jar`.
 
 ### Usage
 
 ```
 reef-convert <input> [output] [options]
 
-Input:  .parquet/.pqt → converts to Reef
-        .reef         → converts to Parquet
+Formats (auto-detected by extension):
+  .parquet/.pqt → Reef     .csv/.tsv → Reef
+  .reef → Parquet           .reef → CSV (if output is .csv)
 
 Options:
-  --columns COL:TYPE:CODEC,...   Column mappings (Parquet→Reef only)
+  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Reef only)
   --smart                        Auto-select best codec per column (sample-based, fast)
   --best                         Try all codecs per column, pick smallest (slower, optimal)
-  --inspect                      Show file structure and exit (works for both formats)
+  --inspect                      Show file structure and exit (Parquet and Reef)
 
 Types:  long, double, binary
 Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
@@ -45,36 +47,56 @@ Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
 
 ```bash
 # Auto-detect all columns (ALP for doubles)
-java -jar target/reef-convert-0.5.0.jar data.parquet
+java -jar target/reef-convert-0.7.0.jar data.parquet
 
 # Auto-select best codec per column (fast, sample-based)
-java -jar target/reef-convert-0.5.0.jar data.parquet --smart
+java -jar target/reef-convert-0.7.0.jar data.parquet --smart
 
 # Optimal codec selection (tries all codecs on all data)
-java -jar target/reef-convert-0.5.0.jar data.parquet --best
+java -jar target/reef-convert-0.7.0.jar data.parquet --best
 
 # Explicit column mappings
-java -jar target/reef-convert-0.5.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
+java -jar target/reef-convert-0.7.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
 ```
+
+### CSV → Reef
+
+```bash
+# Auto-detect types from first data row
+java -jar target/reef-convert-0.7.0.jar data.csv
+
+# Supports comma, tab, and semicolon delimiters (auto-detected)
+java -jar target/reef-convert-0.7.0.jar data.tsv
+```
+
+CSV type detection:
+- Integer values → LONG / DELTA_VARINT
+- Decimal values → DOUBLE / ALP
+- Everything else → BINARY / VARLEN_ZSTD
 
 ### Reef → Parquet
 
 ```bash
-# Auto-detect: .reef input → .parquet output
-java -jar target/reef-convert-0.5.0.jar data.reef
+java -jar target/reef-convert-0.7.0.jar data.reef
 
 # Explicit output path
-java -jar target/reef-convert-0.5.0.jar data.reef output.parquet
+java -jar target/reef-convert-0.7.0.jar data.reef output.parquet
+```
+
+### Reef → CSV
+
+```bash
+java -jar target/reef-convert-0.7.0.jar data.reef output.csv
 ```
 
 ### Inspect
 
 ```bash
 # Parquet schema
-java -jar target/reef-convert-0.5.0.jar data.parquet --inspect
+java -jar target/reef-convert-0.7.0.jar data.parquet --inspect
 
 # Reef structure
-java -jar target/reef-convert-0.5.0.jar data.reef --inspect
+java -jar target/reef-convert-0.7.0.jar data.reef --inspect
 ```
 
 ```
@@ -93,36 +115,19 @@ Reef file: btc_usdt.reef
     asz          DOUBLE / ALP
 ```
 
-### Codec selection modes (Parquet → Reef)
+### Codec selection modes (Parquet/CSV → Reef)
 
 | Mode | Flag | How it works |
 |------|------|--------------|
-| Default | _(none)_ | Maps Parquet types to codecs (ALP for doubles) |
-| Smart | `--smart` | Samples first 512 values per column, trial-encodes with ALP/Gorilla/Pongo, picks smallest |
-| Best | `--best` | Trial-encodes all data with every codec per column, picks smallest (optimal) |
+| Default | _(none)_ | Maps types to codecs (ALP for doubles) |
+| Smart | `--smart` | Samples first 512 values per column, trial-encodes, picks smallest |
+| Best | `--best` | Trial-encodes all data with every codec, picks smallest (optimal) |
 
 With `--smart` or `--best`, each double column shows the comparison:
 
 ```
   bid → PONGO [ALP=6.6KB, GORILLA=5.0KB, PONGO=2.8KB*]
 ```
-
-### Auto-detect type mapping (Parquet → Reef)
-
-| Parquet type        | Reef DataType | Reef Codec     |
-|---------------------|---------------|----------------|
-| INT64, INT32        | LONG          | DELTA_VARINT   |
-| DOUBLE, FLOAT       | DOUBLE        | ALP (or auto-selected with `--smart`/`--best`) |
-| BINARY, FIXED_LEN   | BINARY        | VARLEN_ZSTD    |
-| BOOLEAN             | LONG          | RAW            |
-
-### Type mapping (Reef → Parquet)
-
-| Reef DataType | Parquet type | Notes |
-|---------------|-------------|-------|
-| LONG          | INT64       | Columns named t/ts/timestamp get TIMESTAMP_MILLIS annotation |
-| DOUBLE        | DOUBLE      | |
-| BINARY        | BINARY/STRING | |
 
 ## Benchmarks
 
@@ -132,17 +137,18 @@ Tested on real ticker data (11 columns: timestamp + 10 doubles):
 
 | Format | Size | Ratio |
 |--------|------|-------|
-| Parquet (ZSTD) | 118 KB | 1x |
-| Reef (ALP default) | 82 KB | 1.4x |
-| **Reef (--best)** | **73 KB** | **1.6x** |
+| CSV | 12 KB (100 rows) | 1x |
+| Parquet (ZSTD) | 118 KB | — |
+| Reef (ALP default) | 82 KB | 1.4x vs Parquet |
+| **Reef (--best)** | **73 KB** | **1.6x vs Parquet** |
 | Roundtrip Parquet | 118 KB | lossless ✓ |
+| Roundtrip CSV | 12 KB | lossless ✓ |
 
 **ETH/BTC** (2,260 rows, 5dp prices ~0.03):
 
 | Format | Size | Ratio |
 |--------|------|-------|
 | Parquet (ZSTD) | 35 KB | 1x |
-| Reef (ALP default) | 35 KB | 1.0x |
 | **Reef (--best)** | **22 KB** | **1.6x** |
 
 **PEPE/USDT** (35,600 rows, 12h of tick data):
@@ -150,15 +156,12 @@ Tested on real ticker data (11 columns: timestamp + 10 doubles):
 | Format | Size | Ratio |
 |--------|------|-------|
 | Parquet (ZSTD) | 753 KB | 1x |
-| Reef (ALP default) | 822 KB | 0.9x |
 | **Reef (--best)** | **589 KB** | **1.3x** |
-
-`--best` selects the optimal codec per column — ALP for stable OHLC prices, Pongo for bid/ask with decimal patterns, Gorilla for volatile volumes.
 
 ### Example: BTC/USDT with --best
 
 ```
-$ java -jar target/reef-convert-0.5.0.jar btc_usdt.parquet --best
+$ java -jar target/reef-convert-0.7.0.jar btc_usdt.parquet --best
 
   t   → DELTA_VARINT
   opn → PONGO  [ALP=6.5KB, GORILLA=11.6KB, PONGO=5.1KB*]
@@ -192,6 +195,16 @@ try (var out = new FileOutputStream("ohlcv.reef")) {
 }
 ```
 
+### CSV → Reef
+
+```java
+var converter = new CsvToReefConverter(new File("data.csv"));
+
+try (var out = new FileOutputStream("data.reef")) {
+    int rows = converter.convert(out);
+}
+```
+
 ### Reef → Parquet
 
 ```java
@@ -202,10 +215,19 @@ try (var out = new FileOutputStream("ohlcv.parquet")) {
 }
 ```
 
+### Reef → CSV
+
+```java
+var converter = new ReefToCsvConverter(new File("data.reef"));
+
+try (var out = new FileOutputStream("data.csv")) {
+    int rows = converter.convert(out);
+}
+```
+
 ### Inspect
 
 ```java
-// Reef file
 ReefToParquetConverter.inspect(new File("data.reef"));
 ```
 
