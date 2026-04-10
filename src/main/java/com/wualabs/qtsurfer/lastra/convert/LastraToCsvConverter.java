@@ -1,8 +1,8 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
-import com.wualabs.qtsurfer.reef.ColumnDescriptor;
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.ReefReader;
+import com.wualabs.qtsurfer.lastra.ColumnDescriptor;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.LastraReader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,29 +15,29 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * Converts a Reef file to CSV format.
+ * Converts a Lastra file to CSV format.
  *
  * <p>Writes series columns as comma-separated values with a header row. LONG values are written as
  * plain integers, DOUBLE with full precision, BINARY as UTF-8 strings (quoted if they contain
  * commas).
  */
-public final class ReefToCsvConverter implements ReefConverter {
+public final class LastraToCsvConverter implements LastraConverter {
 
-    private final File reefFile;
+    private final File lastraFile;
     private final char delimiter;
 
-    public ReefToCsvConverter(File reefFile) {
-        this(reefFile, ',');
+    public LastraToCsvConverter(File lastraFile) {
+        this(lastraFile, ',');
     }
 
-    public ReefToCsvConverter(File reefFile, char delimiter) {
-        this.reefFile = reefFile;
+    public LastraToCsvConverter(File lastraFile, char delimiter) {
+        this.lastraFile = lastraFile;
         this.delimiter = delimiter;
     }
 
     @Override
     public int convert(OutputStream out) throws IOException {
-        ReefReader reader = ReefReader.from(new FileInputStream(reefFile));
+        LastraReader reader = LastraReader.from(new FileInputStream(lastraFile));
         List<ColumnDescriptor> columns = reader.seriesColumns();
         int rowCount = reader.seriesRowCount();
 

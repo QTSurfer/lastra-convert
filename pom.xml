@@ -5,19 +5,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.wualabs.qtsurfer</groupId>
-    <artifactId>reef-convert</artifactId>
+    <artifactId>lastra-convert</artifactId>
     <version>0.7.0</version>
     <packaging>jar</packaging>
 
-    <name>QTSurfer Reef Convert</name>
-    <description>Convert time series data to Reef format. Supports Parquet input (via parquet-lite),
+    <name>QTSurfer Lastra Convert</name>
+    <description>Convert time series data to Lastra format. Supports Parquet input (via parquet-lite),
         with extensible design for additional sources (CSV, etc.).</description>
-    <url>https://github.com/QTSurfer/qtsurfer-reef-convert</url>
+    <url>https://github.com/QTSurfer/lastra-convert</url>
 
     <scm>
-        <connection>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</connection>
-        <url>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</url>
-        <developerConnection>scm:git:git@github.com:QTSurfer/qtsurfer-reef-convert.git</developerConnection>
+        <connection>scm:git:git@github.com:QTSurfer/lastra-convert.git</connection>
+        <url>scm:git:git@github.com:QTSurfer/lastra-convert.git</url>
+        <developerConnection>scm:git:git@github.com:QTSurfer/lastra-convert.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -39,7 +39,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
-        <reef.version>0.6.1</reef.version>
+        <lastra.version>0.7.0</lastra.version>
         <parquet-lite.version>2.0.0</parquet-lite.version>
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
@@ -54,12 +54,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.qtsurfer</groupId>
-            <artifactId>reef-java</artifactId>
-            <version>${reef.version}</version>
+            <groupId>com.wualabs.qtsurfer</groupId>
+            <artifactId>lastra</artifactId>
+            <version>${lastra.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.qtsurfer</groupId>
+            <groupId>com.wualabs.qtsurfer</groupId>
             <artifactId>parquet-lite</artifactId>
             <version>${parquet-lite.version}</version>
         </dependency>
@@ -102,7 +102,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.wualabs.qtsurfer.reef.convert.Main</mainClass>
+                                    <mainClass>com.wualabs.qtsurfer.lastra.convert.Main</mainClass>
                                 </transformer>
                             </transformers>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

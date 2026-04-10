@@ -1,8 +1,8 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
 import com.wualabs.qtsurfer.parquet.ParquetWriter;
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.ReefReader;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.LastraReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -12,7 +12,7 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ParquetToReefConverterTest {
+class ParquetToLastraConverterTest {
 
     @TempDir
     Path tempDir;
@@ -52,13 +52,13 @@ class ParquetToReefConverterTest {
         }
 
         // Convert to Reef
-        var converter = ParquetToReefConverter.builder(parquetFile)
-                .map("timestamp", Reef.DataType.LONG, Reef.Codec.DELTA_VARINT)
-                .map("open", Reef.DataType.DOUBLE, Reef.Codec.ALP)
-                .map("high", Reef.DataType.DOUBLE, Reef.Codec.ALP)
-                .map("low", Reef.DataType.DOUBLE, Reef.Codec.ALP)
-                .map("close", Reef.DataType.DOUBLE, Reef.Codec.ALP)
-                .map("volume", Reef.DataType.DOUBLE, Reef.Codec.ALP)
+        var converter = ParquetToLastraConverter.builder(parquetFile)
+                .map("timestamp", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
+                .map("open", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .map("high", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .map("low", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .map("close", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .map("volume", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
                 .build();
 
         ByteArrayOutputStream reefOut = new ByteArrayOutputStream();
@@ -67,7 +67,7 @@ class ParquetToReefConverterTest {
         assertThat(rowCount).isEqualTo(5);
 
         // Verify by reading the Reef output
-        ReefReader reader = ReefReader.from(reefOut.toByteArray());
+        LastraReader reader = LastraReader.from(reefOut.toByteArray());
 
         assertThat(reader.seriesRowCount()).isEqualTo(5);
         assertThat(reader.seriesColumns()).hasSize(6);

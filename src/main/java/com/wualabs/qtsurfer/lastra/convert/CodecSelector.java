@@ -1,10 +1,10 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
-import com.wualabs.qtsurfer.reef.Reef.Codec;
-import com.wualabs.qtsurfer.reef.codec.GorillaCodec;
-import com.wualabs.qtsurfer.reef.codec.PongoCodec;
+import com.wualabs.qtsurfer.lastra.Lastra.Codec;
+import com.wualabs.qtsurfer.lastra.codec.GorillaCodec;
+import com.wualabs.qtsurfer.lastra.codec.PongoCodec;
 import com.wualabs.qtsurfer.alp.AlpCompressor;
-import com.wualabs.qtsurfer.reef.codec.RawCodec;
+import com.wualabs.qtsurfer.lastra.codec.RawCodec;
 
 /**
  * Selects the best Reef codec for a double column by trial-encoding.

@@ -1,9 +1,9 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.Reef.Codec;
-import com.wualabs.qtsurfer.reef.Reef.DataType;
-import com.wualabs.qtsurfer.reef.ReefWriter;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.Lastra.Codec;
+import com.wualabs.qtsurfer.lastra.Lastra.DataType;
+import com.wualabs.qtsurfer.lastra.LastraWriter;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Converts a CSV file to Reef format.
+ * Converts a CSV file to Lastra format.
  *
  * <p>Auto-detects column types from the first data row:
  * <ul>
@@ -26,16 +26,16 @@ import java.util.List;
  *
  * <p>Supports comma, tab, and semicolon delimiters (auto-detected from header).
  */
-public final class CsvToReefConverter implements ReefConverter {
+public final class CsvToLastraConverter implements LastraConverter {
 
     private final File csvFile;
     private final List<ColumnMapping> explicitMappings;
 
-    public CsvToReefConverter(File csvFile) {
+    public CsvToLastraConverter(File csvFile) {
         this(csvFile, null);
     }
 
-    public CsvToReefConverter(File csvFile, List<ColumnMapping> mappings) {
+    public CsvToLastraConverter(File csvFile, List<ColumnMapping> mappings) {
         this.csvFile = csvFile;
         this.explicitMappings = mappings;
     }
@@ -67,7 +67,7 @@ public final class CsvToReefConverter implements ReefConverter {
             } else {
                 mappings = autoDetect(headers, rows.get(0));
                 for (ColumnMapping m : mappings) {
-                    System.out.printf("  %s → %s / %s%n", m.reefName(), m.dataType(), m.codec());
+                    System.out.printf("  %s → %s / %s%n", m.lastraName(), m.dataType(), m.codec());
                 }
             }
 
@@ -115,9 +115,9 @@ public final class CsvToReefConverter implements ReefConverter {
             }
 
             // Write Reef
-            try (ReefWriter writer = new ReefWriter(out)) {
+            try (LastraWriter writer = new LastraWriter(out)) {
                 for (ColumnMapping m : mappings) {
-                    writer.addSeriesColumn(m.reefName(), m.dataType(), m.codec());
+                    writer.addSeriesColumn(m.lastraName(), m.dataType(), m.codec());
                 }
                 writer.writeSeries(rowCount, columnData);
                 return rowCount;

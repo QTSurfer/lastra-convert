@@ -1,11 +1,11 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
 import com.wualabs.qtsurfer.parquet.Dehydrator;
 import com.wualabs.qtsurfer.parquet.ParquetWriter;
 import com.wualabs.qtsurfer.parquet.ValueWriter;
-import com.wualabs.qtsurfer.reef.ColumnDescriptor;
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.ReefReader;
+import com.wualabs.qtsurfer.lastra.ColumnDescriptor;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.LastraReader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,30 +21,30 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Types;
 
 /**
- * Converts a Reef file to Parquet format using parquet-lite.
+ * Converts a Lastra file to Parquet format using parquet-lite.
  *
- * <p>Reads series columns from the Reef file, maps them to a Parquet schema, and writes
+ * <p>Reads series columns from the Lastra file, maps them to a Parquet schema, and writes
  * ZSTD-compressed Parquet. Events section is not included (Parquet has no equivalent concept).
  *
  * <p>Usage:
  * <pre>{@code
- * var converter = new ReefToParquetConverter(reefFile);
+ * var converter = new LastraToParquetConverter(lastraFile);
  * try (var out = new FileOutputStream("output.parquet")) {
  *     int rows = converter.convert(out);
  * }
  * }</pre>
  */
-public final class ReefToParquetConverter implements ReefConverter {
+public final class LastraToParquetConverter implements LastraConverter {
 
-    private final File reefFile;
+    private final File lastraFile;
 
-    public ReefToParquetConverter(File reefFile) {
-        this.reefFile = reefFile;
+    public LastraToParquetConverter(File lastraFile) {
+        this.lastraFile = lastraFile;
     }
 
     @Override
     public int convert(OutputStream out) throws IOException {
-        ReefReader reader = ReefReader.from(new FileInputStream(reefFile));
+        LastraReader reader = LastraReader.from(new FileInputStream(lastraFile));
         List<ColumnDescriptor> columns = reader.seriesColumns();
         int rowCount = reader.seriesRowCount();
 
@@ -86,11 +86,11 @@ public final class ReefToParquetConverter implements ReefConverter {
     }
 
     /**
-     * Inspects a Reef file and prints its structure.
+     * Inspects a Lastra file and prints its structure.
      */
-    public static void inspect(File reefFile) throws IOException {
-        ReefReader reader = ReefReader.from(new FileInputStream(reefFile));
-        System.out.println("Reef file: " + reefFile.getName());
+    public static void inspect(File lastraFile) throws IOException {
+        LastraReader reader = LastraReader.from(new FileInputStream(lastraFile));
+        System.out.println("Lastra file: " + lastraFile.getName());
         System.out.printf("  Series: %,d rows, %d columns%n",
                 reader.seriesRowCount(), reader.seriesColumns().size());
         for (ColumnDescriptor col : reader.seriesColumns()) {
@@ -135,7 +135,7 @@ public final class ReefToParquetConverter implements ReefConverter {
                     break;
             }
         }
-        return new MessageType("reef", fields);
+        return new MessageType("lastra", fields);
     }
 
     /**

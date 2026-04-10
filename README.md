@@ -1,18 +1,18 @@
-# Reef Convert
+# Lastra Convert
 
-[![CI](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/qtsurfer-reef-convert/actions/workflows/ci.yml)
+[![CI](https://github.com/QTSurfer/lastra-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/lastra-convert/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java), [Apache Parquet](https://parquet.apache.org/), and CSV formats for time series data.
+Bidirectional converter between [Reef](https://github.com/QTSurfer/lastra-java), [Apache Parquet](https://parquet.apache.org/), and CSV formats for time series data.
 
 ## Supported conversions
 
 | Source → Target | Status |
 |-----------------|--------|
-| Parquet → Reef | ✅ Ready (auto-detect, --smart, --best) |
-| Reef → Parquet | ✅ Ready (ZSTD compressed, lossless roundtrip) |
-| CSV → Reef | ✅ Ready (auto-detect types and delimiter) |
-| Reef → CSV | ✅ Ready (plain decimal output) |
+| Parquet → Lastra | ✅ Ready (auto-detect, --smart, --best) |
+| Lastra → Parquet | ✅ Ready (ZSTD compressed, lossless roundtrip) |
+| CSV → Lastra | ✅ Ready (auto-detect types and delimiter) |
+| Lastra → CSV | ✅ Ready (plain decimal output) |
 
 ## CLI
 
@@ -22,19 +22,19 @@ Bidirectional converter between [Reef](https://github.com/QTSurfer/reef-java), [
 mvn package
 ```
 
-This produces a fat JAR at `target/reef-convert-0.7.0.jar`.
+This produces a fat JAR at `target/lastra-convert-0.7.0.jar`.
 
 ### Usage
 
 ```
-reef-convert <input> [output] [options]
+lastra-convert <input> [output] [options]
 
 Formats (auto-detected by extension):
-  .parquet/.pqt → Reef     .csv/.tsv → Reef
-  .reef → Parquet           .reef → CSV (if output is .csv)
+  .parquet/.pqt → Lastra     .csv/.tsv → Reef
+  .lastra → Parquet           .lastra → CSV (if output is .csv)
 
 Options:
-  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Reef only)
+  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Lastra only)
   --smart                        Auto-select best codec per column (sample-based, fast)
   --best                         Try all codecs per column, pick smallest (slower, optimal)
   --inspect                      Show file structure and exit (Parquet and Reef)
@@ -47,26 +47,26 @@ Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
 
 ```bash
 # Auto-detect all columns (ALP for doubles)
-java -jar target/reef-convert-0.7.0.jar data.parquet
+java -jar target/lastra-convert-0.7.0.jar data.parquet
 
 # Auto-select best codec per column (fast, sample-based)
-java -jar target/reef-convert-0.7.0.jar data.parquet --smart
+java -jar target/lastra-convert-0.7.0.jar data.parquet --smart
 
 # Optimal codec selection (tries all codecs on all data)
-java -jar target/reef-convert-0.7.0.jar data.parquet --best
+java -jar target/lastra-convert-0.7.0.jar data.parquet --best
 
 # Explicit column mappings
-java -jar target/reef-convert-0.7.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
+java -jar target/lastra-convert-0.7.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
 ```
 
 ### CSV → Reef
 
 ```bash
 # Auto-detect types from first data row
-java -jar target/reef-convert-0.7.0.jar data.csv
+java -jar target/lastra-convert-0.7.0.jar data.csv
 
 # Supports comma, tab, and semicolon delimiters (auto-detected)
-java -jar target/reef-convert-0.7.0.jar data.tsv
+java -jar target/lastra-convert-0.7.0.jar data.tsv
 ```
 
 CSV type detection:
@@ -74,33 +74,33 @@ CSV type detection:
 - Decimal values → DOUBLE / ALP
 - Everything else → BINARY / VARLEN_ZSTD
 
-### Reef → Parquet
+### Lastra → Parquet
 
 ```bash
-java -jar target/reef-convert-0.7.0.jar data.reef
+java -jar target/lastra-convert-0.7.0.jar data.lastra
 
 # Explicit output path
-java -jar target/reef-convert-0.7.0.jar data.reef output.parquet
+java -jar target/lastra-convert-0.7.0.jar data.lastra output.parquet
 ```
 
-### Reef → CSV
+### Lastra → CSV
 
 ```bash
-java -jar target/reef-convert-0.7.0.jar data.reef output.csv
+java -jar target/lastra-convert-0.7.0.jar data.lastra output.csv
 ```
 
 ### Inspect
 
 ```bash
 # Parquet schema
-java -jar target/reef-convert-0.7.0.jar data.parquet --inspect
+java -jar target/lastra-convert-0.7.0.jar data.parquet --inspect
 
-# Reef structure
-java -jar target/reef-convert-0.7.0.jar data.reef --inspect
+# Lastra structure
+java -jar target/lastra-convert-0.7.0.jar data.lastra --inspect
 ```
 
 ```
-Reef file: btc_usdt.reef
+Lastra file: btc_usdt.lastra
   Series: 3,591 rows, 11 columns
     t            LONG / DELTA_VARINT
     opn          DOUBLE / PONGO
@@ -139,8 +139,8 @@ Tested on real ticker data (11 columns: timestamp + 10 doubles):
 |--------|------|-------|
 | CSV | 12 KB (100 rows) | 1x |
 | Parquet (ZSTD) | 118 KB | — |
-| Reef (ALP default) | 82 KB | 1.4x vs Parquet |
-| **Reef (--best)** | **73 KB** | **1.6x vs Parquet** |
+| Lastra (ALP default) | 82 KB | 1.4x vs Parquet |
+| **Lastra (--best)** | **73 KB** | **1.6x vs Parquet** |
 | Roundtrip Parquet | 118 KB | lossless ✓ |
 | Roundtrip CSV | 12 KB | lossless ✓ |
 
@@ -149,19 +149,19 @@ Tested on real ticker data (11 columns: timestamp + 10 doubles):
 | Format | Size | Ratio |
 |--------|------|-------|
 | Parquet (ZSTD) | 35 KB | 1x |
-| **Reef (--best)** | **22 KB** | **1.6x** |
+| **Lastra (--best)** | **22 KB** | **1.6x** |
 
 **PEPE/USDT** (35,600 rows, 12h of tick data):
 
 | Format | Size | Ratio |
 |--------|------|-------|
 | Parquet (ZSTD) | 753 KB | 1x |
-| **Reef (--best)** | **589 KB** | **1.3x** |
+| **Lastra (--best)** | **589 KB** | **1.3x** |
 
 ### Example: BTC/USDT with --best
 
 ```
-$ java -jar target/reef-convert-0.7.0.jar btc_usdt.parquet --best
+$ java -jar target/lastra-convert-0.7.0.jar btc_usdt.parquet --best
 
   t   → DELTA_VARINT
   opn → PONGO  [ALP=6.5KB, GORILLA=11.6KB, PONGO=5.1KB*]
@@ -175,7 +175,7 @@ $ java -jar target/reef-convert-0.7.0.jar btc_usdt.parquet --best
   ask → PONGO  [ALP=6.6KB, GORILLA=5.0KB, PONGO=2.9KB*]
   asz → ALP    [ALP=9.8KB*, GORILLA=27.7KB, PONGO=15.7KB]
 
-Converted 3,591 rows → btc_usdt.reef (73 KB, 1.6x compression vs parquet)
+Converted 3,591 rows → btc_usdt.lastra (73 KB, 1.6x compression vs parquet)
 ```
 
 ## Java API
@@ -183,14 +183,14 @@ Converted 3,591 rows → btc_usdt.reef (73 KB, 1.6x compression vs parquet)
 ### Parquet → Reef
 
 ```java
-var converter = ParquetToReefConverter.builder(new File("ohlcv.parquet"))
+var converter = ParquetToLastraConverter.builder(new File("ohlcv.parquet"))
     .map("timestamp", DataType.LONG, Codec.DELTA_VARINT)
     .map("open",   DataType.DOUBLE, Codec.ALP)
     .map("close",  DataType.DOUBLE, Codec.PONGO)
     .map("volume", DataType.DOUBLE, Codec.ALP)
     .build();
 
-try (var out = new FileOutputStream("ohlcv.reef")) {
+try (var out = new FileOutputStream("ohlcv.lastra")) {
     int rows = converter.convert(out);
 }
 ```
@@ -198,27 +198,27 @@ try (var out = new FileOutputStream("ohlcv.reef")) {
 ### CSV → Reef
 
 ```java
-var converter = new CsvToReefConverter(new File("data.csv"));
+var converter = new CsvToLastraConverter(new File("data.csv"));
 
-try (var out = new FileOutputStream("data.reef")) {
+try (var out = new FileOutputStream("data.lastra")) {
     int rows = converter.convert(out);
 }
 ```
 
-### Reef → Parquet
+### Lastra → Parquet
 
 ```java
-var converter = new ReefToParquetConverter(new File("ohlcv.reef"));
+var converter = new LastraToParquetConverter(new File("ohlcv.lastra"));
 
 try (var out = new FileOutputStream("ohlcv.parquet")) {
     int rows = converter.convert(out);
 }
 ```
 
-### Reef → CSV
+### Lastra → CSV
 
 ```java
-var converter = new ReefToCsvConverter(new File("data.reef"));
+var converter = new LastraToCsvConverter(new File("data.lastra"));
 
 try (var out = new FileOutputStream("data.csv")) {
     int rows = converter.convert(out);
@@ -228,13 +228,13 @@ try (var out = new FileOutputStream("data.csv")) {
 ### Inspect
 
 ```java
-ReefToParquetConverter.inspect(new File("data.reef"));
+LastraToParquetConverter.inspect(new File("data.lastra"));
 ```
 
 ## Requirements
 
 - Java 11+
-- [reef-java](https://github.com/QTSurfer/reef-java)
+- [lastra-java](https://github.com/QTSurfer/lastra-java)
 - [parquet-lite](https://github.com/QTSurfer/parquet-lite)
 
 ## License

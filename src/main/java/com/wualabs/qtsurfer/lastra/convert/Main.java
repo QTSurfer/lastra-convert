@@ -1,8 +1,8 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.Reef.Codec;
-import com.wualabs.qtsurfer.reef.Reef.DataType;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.Lastra.Codec;
+import com.wualabs.qtsurfer.lastra.Lastra.DataType;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,11 +11,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * CLI for converting Parquet files to Reef format.
+ * CLI for converting Parquet files to Lastra format.
  *
  * <p>Usage:
  * <pre>
- *   reef-convert &lt;input.parquet&gt; [output.reef] [options]
+ *   reef-convert &lt;input.parquet&gt; [output.lastra] [options]
  *
  *   Options:
  *     --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect, ALP for doubles)
@@ -81,14 +81,14 @@ public final class Main {
 
         // Detect format by input file extension
         String inputLower = inputPath.toLowerCase();
-        boolean isReefInput = inputLower.endsWith(".reef");
+        boolean isReefInput = inputLower.endsWith(".lastra");
         boolean isCsvInput = inputLower.endsWith(".csv") || inputLower.endsWith(".tsv");
 
         if (inspect) {
             if (isReefInput) {
-                ReefToParquetConverter.inspect(inputFile);
+                LastraToParquetConverter.inspect(inputFile);
             } else if (isCsvInput) {
-                System.out.println("CSV inspect not supported. Use --inspect on .parquet or .reef files.");
+                System.out.println("CSV inspect not supported. Use --inspect on .parquet or .lastra files.");
             } else {
                 InspectParquet.main(new String[]{inputPath});
             }
@@ -106,7 +106,7 @@ public final class Main {
                 ext = ".parquet";
             } else {
                 // Parquet/CSV → Reef
-                ext = ".reef";
+                ext = ".lastra";
             }
             outputPath = new File(inputFile.getParentFile(), base + ext).getPath();
         }
@@ -117,32 +117,32 @@ public final class Main {
 
         if (isReefInput && outputCsv) {
             // Reef → CSV
-            ReefToCsvConverter converter = new ReefToCsvConverter(inputFile);
+            LastraToCsvConverter converter = new LastraToCsvConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
         } else if (isReefInput) {
             // Reef → Parquet
-            ReefToParquetConverter converter = new ReefToParquetConverter(inputFile);
+            LastraToParquetConverter converter = new LastraToParquetConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
         } else if (isCsvInput) {
             // CSV → Reef
-            CsvToReefConverter converter = new CsvToReefConverter(inputFile);
+            CsvToLastraConverter converter = new CsvToLastraConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
         } else if (smart || best) {
             // Parquet → Reef (smart/best mode)
-            SmartParquetToReefConverter.Mode mode = best
-                    ? SmartParquetToReefConverter.Mode.BEST
-                    : SmartParquetToReefConverter.Mode.SMART;
+            SmartParquetToLastraConverter.Mode mode = best
+                    ? SmartParquetToLastraConverter.Mode.BEST
+                    : SmartParquetToLastraConverter.Mode.SMART;
 
-            SmartParquetToReefConverter converter = SmartParquetToReefConverter.create(inputFile, mode);
+            SmartParquetToLastraConverter converter = SmartParquetToLastraConverter.create(inputFile, mode);
 
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
@@ -150,7 +150,7 @@ public final class Main {
             }
         } else {
             // Parquet → Reef (standard mode)
-            ParquetToReefConverter.Builder builder = ParquetToReefConverter.builder(inputFile);
+            ParquetToLastraConverter.Builder builder = ParquetToLastraConverter.builder(inputFile);
 
             if (columnsArg != null) {
                 parseColumns(columnsArg, builder);
@@ -158,7 +158,7 @@ public final class Main {
                 autoDetectColumns(inputFile, builder);
             }
 
-            ParquetToReefConverter converter = builder.build();
+            ParquetToLastraConverter converter = builder.build();
 
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
@@ -175,7 +175,7 @@ public final class Main {
                 rows, outputFile.getName(), reefSize, ratio);
     }
 
-    private static void parseColumns(String columnsArg, ParquetToReefConverter.Builder builder) {
+    private static void parseColumns(String columnsArg, ParquetToLastraConverter.Builder builder) {
         for (String spec : columnsArg.split(",")) {
             String[] parts = spec.trim().split(":");
             if (parts.length < 3) {
@@ -197,7 +197,7 @@ public final class Main {
         }
     }
 
-    private static void autoDetectColumns(File parquetFile, ParquetToReefConverter.Builder builder) throws IOException {
+    private static void autoDetectColumns(File parquetFile, ParquetToLastraConverter.Builder builder) throws IOException {
         var metadata = com.wualabs.qtsurfer.parquet.ParquetReader.readMetadata(parquetFile);
         var schema = metadata.getFileMetaData().getSchema();
 
@@ -240,7 +240,7 @@ public final class Main {
         System.out.println();
         System.out.println("Formats (auto-detected by extension):");
         System.out.println("  .parquet/.pqt → Reef     .csv/.tsv → Reef");
-        System.out.println("  .reef → Parquet           .reef → CSV (if output is .csv)");
+        System.out.println("  .lastra → Parquet           .lastra → CSV (if output is .csv)");
         System.out.println();
         System.out.println("Options:");
         System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Reef)");
@@ -255,8 +255,8 @@ public final class Main {
         System.out.println("  reef-convert data.parquet                      # Parquet → Reef");
         System.out.println("  reef-convert data.parquet --best               # Parquet → Reef (optimal)");
         System.out.println("  reef-convert data.csv                          # CSV → Reef");
-        System.out.println("  reef-convert data.reef                         # Reef → Parquet");
-        System.out.println("  reef-convert data.reef output.csv              # Reef → CSV");
-        System.out.println("  reef-convert data.reef --inspect               # Inspect Reef file");
+        System.out.println("  reef-convert data.lastra                         # Reef → Parquet");
+        System.out.println("  reef-convert data.lastra output.csv              # Reef → CSV");
+        System.out.println("  reef-convert data.lastra --inspect               # Inspect Lastra file");
     }
 }

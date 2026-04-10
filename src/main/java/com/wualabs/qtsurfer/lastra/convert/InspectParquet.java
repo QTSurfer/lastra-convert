@@ -1,4 +1,4 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
 import com.wualabs.qtsurfer.parquet.ParquetReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;

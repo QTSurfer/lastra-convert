@@ -1,10 +1,10 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
 import com.wualabs.qtsurfer.parquet.Hydrator;
 import com.wualabs.qtsurfer.parquet.HydratorSupplier;
 import com.wualabs.qtsurfer.parquet.ParquetReader;
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.ReefWriter;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.LastraWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Converts a Parquet file to Reef format using parquet-lite.
+ * Converts a Parquet file to Lastra format using parquet-lite.
  *
  * <p>Usage:
  * <pre>{@code
- * var converter = ParquetToReefConverter.builder(parquetFile)
+ * var converter = ParquetToLastraConverter.builder(parquetFile)
  *     .map("timestamp", DataType.LONG, Codec.DELTA_VARINT)
  *     .map("open", DataType.DOUBLE, Codec.ALP)
  *     .map("high", DataType.DOUBLE, Codec.ALP)
@@ -31,17 +31,17 @@ import java.util.stream.Stream;
  *     .map("volume", DataType.DOUBLE, Codec.ALP)
  *     .build();
  *
- * try (var out = new FileOutputStream("output.reef")) {
+ * try (var out = new FileOutputStream("output.lastra")) {
  *     int rows = converter.convert(out);
  * }
  * }</pre>
  */
-public final class ParquetToReefConverter implements ReefConverter {
+public final class ParquetToLastraConverter implements LastraConverter {
 
     private final File parquetFile;
     private final List<ColumnMapping> mappings;
 
-    private ParquetToReefConverter(File parquetFile, List<ColumnMapping> mappings) {
+    private ParquetToLastraConverter(File parquetFile, List<ColumnMapping> mappings) {
         this.parquetFile = parquetFile;
         this.mappings = List.copyOf(mappings);
     }
@@ -64,10 +64,10 @@ public final class ParquetToReefConverter implements ReefConverter {
 
         int rowCount = rows.size();
 
-        try (ReefWriter writer = new ReefWriter(out)) {
+        try (LastraWriter writer = new LastraWriter(out)) {
             // Register columns
             for (ColumnMapping m : mappings) {
-                writer.addSeriesColumn(m.reefName(), m.dataType(), m.codec(), m.metadata());
+                writer.addSeriesColumn(m.lastraName(), m.dataType(), m.codec(), m.metadata());
             }
 
             // Build column data arrays
@@ -83,7 +83,7 @@ public final class ParquetToReefConverter implements ReefConverter {
     }
 
     private Object buildColumnArray(List<Map<String, Object>> rows, String sourceName,
-                                    Reef.DataType dataType, int rowCount) {
+                                    Lastra.DataType dataType, int rowCount) {
         switch (dataType) {
             case LONG: {
                 long[] arr = new long[rowCount];
@@ -132,13 +132,13 @@ public final class ParquetToReefConverter implements ReefConverter {
             this.parquetFile = parquetFile;
         }
 
-        public Builder map(String name, Reef.DataType dataType, Reef.Codec codec) {
+        public Builder map(String name, Lastra.DataType dataType, Lastra.Codec codec) {
             mappings.add(ColumnMapping.of(name, dataType, codec));
             return this;
         }
 
-        public Builder map(String sourceName, String reefName, Reef.DataType dataType, Reef.Codec codec) {
-            mappings.add(ColumnMapping.of(sourceName, reefName, dataType, codec));
+        public Builder map(String sourceName, String lastraName, Lastra.DataType dataType, Lastra.Codec codec) {
+            mappings.add(ColumnMapping.of(sourceName, lastraName, dataType, codec));
             return this;
         }
 
@@ -147,11 +147,11 @@ public final class ParquetToReefConverter implements ReefConverter {
             return this;
         }
 
-        public ParquetToReefConverter build() {
+        public ParquetToLastraConverter build() {
             if (mappings.isEmpty()) {
                 throw new IllegalStateException("At least one column mapping is required");
             }
-            return new ParquetToReefConverter(parquetFile, mappings);
+            return new ParquetToLastraConverter(parquetFile, mappings);
         }
     }
 

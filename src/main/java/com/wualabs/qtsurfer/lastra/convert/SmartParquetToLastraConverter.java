@@ -1,12 +1,12 @@
-package com.wualabs.qtsurfer.reef.convert;
+package com.wualabs.qtsurfer.lastra.convert;
 
 import com.wualabs.qtsurfer.parquet.Hydrator;
 import com.wualabs.qtsurfer.parquet.HydratorSupplier;
 import com.wualabs.qtsurfer.parquet.ParquetReader;
-import com.wualabs.qtsurfer.reef.Reef;
-import com.wualabs.qtsurfer.reef.Reef.Codec;
-import com.wualabs.qtsurfer.reef.Reef.DataType;
-import com.wualabs.qtsurfer.reef.ReefWriter;
+import com.wualabs.qtsurfer.lastra.Lastra;
+import com.wualabs.qtsurfer.lastra.Lastra.Codec;
+import com.wualabs.qtsurfer.lastra.Lastra.DataType;
+import com.wualabs.qtsurfer.lastra.LastraWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  *
  * <p>Reads all data first, then tries each codec per column to find the best one.
  */
-public final class SmartParquetToReefConverter implements ReefConverter {
+public final class SmartParquetToLastraConverter implements LastraConverter {
 
     /** Use sample-based selection (fast) or full scan (optimal). */
     public enum Mode { SMART, BEST }
@@ -32,7 +32,7 @@ public final class SmartParquetToReefConverter implements ReefConverter {
     private final List<ColumnSpec> columns;
     private final Mode mode;
 
-    private SmartParquetToReefConverter(File parquetFile, List<ColumnSpec> columns, Mode mode) {
+    private SmartParquetToLastraConverter(File parquetFile, List<ColumnSpec> columns, Mode mode) {
         this.parquetFile = parquetFile;
         this.columns = columns;
         this.mode = mode;
@@ -77,7 +77,7 @@ public final class SmartParquetToReefConverter implements ReefConverter {
         }
 
         // Write reef
-        try (ReefWriter writer = new ReefWriter(out)) {
+        try (LastraWriter writer = new LastraWriter(out)) {
             for (int i = 0; i < columns.size(); i++) {
                 ColumnSpec col = columns.get(i);
                 writer.addSeriesColumn(col.name, col.dataType, codecs[i]);
@@ -121,7 +121,7 @@ public final class SmartParquetToReefConverter implements ReefConverter {
         }
     }
 
-    public static SmartParquetToReefConverter create(File parquetFile, Mode mode) throws IOException {
+    public static SmartParquetToLastraConverter create(File parquetFile, Mode mode) throws IOException {
         var metadata = ParquetReader.readMetadata(parquetFile);
         var schema = metadata.getFileMetaData().getSchema();
 
@@ -148,7 +148,7 @@ public final class SmartParquetToReefConverter implements ReefConverter {
             }
         }
 
-        return new SmartParquetToReefConverter(parquetFile, columns, mode);
+        return new SmartParquetToLastraConverter(parquetFile, columns, mode);
     }
 
     static final class ColumnSpec {
