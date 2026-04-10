@@ -79,8 +79,15 @@ public final class Main {
             System.exit(1);
         }
 
+        // Detect direction by input file extension
+        boolean isReefInput = inputPath.endsWith(".reef");
+
         if (inspect) {
-            InspectParquet.main(new String[]{inputPath});
+            if (isReefInput) {
+                ReefToParquetConverter.inspect(inputFile);
+            } else {
+                InspectParquet.main(new String[]{inputPath});
+            }
             return;
         }
 
@@ -88,13 +95,21 @@ public final class Main {
             String name = inputFile.getName();
             int dot = name.lastIndexOf('.');
             String base = dot > 0 ? name.substring(0, dot) : name;
-            outputPath = new File(inputFile.getParentFile(), base + ".reef").getPath();
+            String ext = isReefInput ? ".parquet" : ".reef";
+            outputPath = new File(inputFile.getParentFile(), base + ext).getPath();
         }
 
         File outputFile = new File(outputPath);
 
-        if (smart || best) {
-            // Smart/best mode: auto-select codec per double column
+        if (isReefInput) {
+            // Reef → Parquet
+            ReefToParquetConverter converter = new ReefToParquetConverter(inputFile);
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                int rows = converter.convert(out);
+                printResult(inputFile, outputFile, rows);
+            }
+        } else if (smart || best) {
+            // Parquet → Reef (smart/best mode)
             SmartParquetToReefConverter.Mode mode = best
                     ? SmartParquetToReefConverter.Mode.BEST
                     : SmartParquetToReefConverter.Mode.SMART;
@@ -106,7 +121,7 @@ public final class Main {
                 printResult(inputFile, outputFile, rows);
             }
         } else {
-            // Standard mode: explicit columns or auto-detect with ALP default
+            // Parquet → Reef (standard mode)
             ParquetToReefConverter.Builder builder = ParquetToReefConverter.builder(inputFile);
 
             if (columnsArg != null) {
