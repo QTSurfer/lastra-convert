@@ -18,7 +18,7 @@ class ParquetToLastraConverterTest {
     Path tempDir;
 
     @Test
-    void convertOhlcvParquetToReef() throws Exception {
+    void convertOhlcvParquetToLastra() throws Exception {
         File parquetFile = tempDir.resolve("test.parquet").toFile();
 
         org.apache.parquet.schema.MessageType schema = org.apache.parquet.schema.Types.buildMessage()
@@ -51,7 +51,7 @@ class ParquetToLastraConverterTest {
             }
         }
 
-        // Convert to Reef
+        // Convert to Lastra
         var converter = ParquetToLastraConverter.builder(parquetFile)
                 .map("timestamp", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
                 .map("open", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
@@ -61,13 +61,13 @@ class ParquetToLastraConverterTest {
                 .map("volume", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
                 .build();
 
-        ByteArrayOutputStream reefOut = new ByteArrayOutputStream();
-        int rowCount = converter.convert(reefOut);
+        ByteArrayOutputStream lastraOut = new ByteArrayOutputStream();
+        int rowCount = converter.convert(lastraOut);
 
         assertThat(rowCount).isEqualTo(5);
 
-        // Verify by reading the Reef output
-        LastraReader reader = LastraReader.from(reefOut.toByteArray());
+        // Verify by reading the Lastra output
+        LastraReader reader = LastraReader.from(lastraOut.toByteArray());
 
         assertThat(reader.seriesRowCount()).isEqualTo(5);
         assertThat(reader.seriesColumns()).hasSize(6);

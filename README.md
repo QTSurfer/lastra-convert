@@ -3,7 +3,7 @@
 [![CI](https://github.com/QTSurfer/lastra-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/QTSurfer/lastra-convert/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Bidirectional converter between [Reef](https://github.com/QTSurfer/lastra-java), [Apache Parquet](https://parquet.apache.org/), and CSV formats for time series data.
+Bidirectional converter between [Lastra](https://github.com/QTSurfer/lastra-java), [Apache Parquet](https://parquet.apache.org/), and CSV formats for time series data.
 
 ## Supported conversions
 
@@ -30,20 +30,20 @@ This produces a fat JAR at `target/lastra-convert-0.7.0.jar`.
 lastra-convert <input> [output] [options]
 
 Formats (auto-detected by extension):
-  .parquet/.pqt → Lastra     .csv/.tsv → Reef
+  .parquet/.pqt → Lastra     .csv/.tsv → Lastra
   .lastra → Parquet           .lastra → CSV (if output is .csv)
 
 Options:
   --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Lastra only)
   --smart                        Auto-select best codec per column (sample-based, fast)
   --best                         Try all codecs per column, pick smallest (slower, optimal)
-  --inspect                      Show file structure and exit (Parquet and Reef)
+  --inspect                      Show file structure and exit (Parquet and Lastra)
 
 Types:  long, double, binary
 Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
 ```
 
-### Parquet → Reef
+### Parquet → Lastra
 
 ```bash
 # Auto-detect all columns (ALP for doubles)
@@ -59,7 +59,7 @@ java -jar target/lastra-convert-0.7.0.jar data.parquet --best
 java -jar target/lastra-convert-0.7.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
 ```
 
-### CSV → Reef
+### CSV → Lastra
 
 ```bash
 # Auto-detect types from first data row
@@ -115,7 +115,7 @@ Lastra file: btc_usdt.lastra
     asz          DOUBLE / ALP
 ```
 
-### Codec selection modes (Parquet/CSV → Reef)
+### Codec selection modes (Parquet/CSV → Lastra)
 
 | Mode | Flag | How it works |
 |------|------|--------------|
@@ -180,7 +180,7 @@ Converted 3,591 rows → btc_usdt.lastra (73 KB, 1.6x compression vs parquet)
 
 ## Java API
 
-### Parquet → Reef
+### Parquet → Lastra
 
 ```java
 var converter = ParquetToLastraConverter.builder(new File("ohlcv.parquet"))
@@ -195,7 +195,7 @@ try (var out = new FileOutputStream("ohlcv.lastra")) {
 }
 ```
 
-### CSV → Reef
+### CSV → Lastra
 
 ```java
 var converter = new CsvToLastraConverter(new File("data.csv"));

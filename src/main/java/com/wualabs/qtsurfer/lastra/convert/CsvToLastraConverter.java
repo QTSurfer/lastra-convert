@@ -114,7 +114,7 @@ public final class CsvToLastraConverter implements LastraConverter {
                 }
             }
 
-            // Write Reef
+            // Write Lastra
             try (LastraWriter writer = new LastraWriter(out)) {
                 for (ColumnMapping m : mappings) {
                     writer.addSeriesColumn(m.lastraName(), m.dataType(), m.codec());

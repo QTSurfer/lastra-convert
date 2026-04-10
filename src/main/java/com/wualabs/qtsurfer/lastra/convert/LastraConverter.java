@@ -9,7 +9,7 @@ import java.io.OutputStream;
 public interface LastraConverter {
 
     /**
-     * Converts the source and writes the Reef output to the given stream.
+     * Converts the source and writes the Lastra output to the given stream.
      *
      * @param out destination stream for the Lastra file
      * @return number of rows written

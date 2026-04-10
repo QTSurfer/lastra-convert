@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Converts Parquet to Reef with automatic codec selection per double column.
+ * Converts Parquet to Lastra with automatic codec selection per double column.
  *
  * <p>Reads all data first, then tries each codec per column to find the best one.
  */
@@ -76,7 +76,7 @@ public final class SmartParquetToLastraConverter implements LastraConverter {
             }
         }
 
-        // Write reef
+        // Write lastra
         try (LastraWriter writer = new LastraWriter(out)) {
             for (int i = 0; i < columns.size(); i++) {
                 ColumnSpec col = columns.get(i);

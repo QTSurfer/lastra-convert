@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * <p>Usage:
  * <pre>
- *   reef-convert &lt;input.parquet&gt; [output.lastra] [options]
+ *   lastra-convert &lt;input.parquet&gt; [output.lastra] [options]
  *
  *   Options:
  *     --columns COL:TYPE:CODEC,...   Column mappings (default: auto-detect, ALP for doubles)
@@ -81,11 +81,11 @@ public final class Main {
 
         // Detect format by input file extension
         String inputLower = inputPath.toLowerCase();
-        boolean isReefInput = inputLower.endsWith(".lastra");
+        boolean isLastraInput = inputLower.endsWith(".lastra");
         boolean isCsvInput = inputLower.endsWith(".csv") || inputLower.endsWith(".tsv");
 
         if (inspect) {
-            if (isReefInput) {
+            if (isLastraInput) {
                 LastraToParquetConverter.inspect(inputFile);
             } else if (isCsvInput) {
                 System.out.println("CSV inspect not supported. Use --inspect on .parquet or .lastra files.");
@@ -101,11 +101,11 @@ public final class Main {
             int dot = name.lastIndexOf('.');
             String base = dot > 0 ? name.substring(0, dot) : name;
             String ext;
-            if (isReefInput) {
-                // Reef → default to Parquet, or CSV if output ends with .csv
+            if (isLastraInput) {
+                // Lastra → default to Parquet, or CSV if output ends with .csv
                 ext = ".parquet";
             } else {
-                // Parquet/CSV → Reef
+                // Parquet/CSV → Lastra
                 ext = ".lastra";
             }
             outputPath = new File(inputFile.getParentFile(), base + ext).getPath();
@@ -115,29 +115,29 @@ public final class Main {
         boolean outputCsv = outputPath.toLowerCase().endsWith(".csv")
                 || outputPath.toLowerCase().endsWith(".tsv");
 
-        if (isReefInput && outputCsv) {
-            // Reef → CSV
+        if (isLastraInput && outputCsv) {
+            // Lastra → CSV
             LastraToCsvConverter converter = new LastraToCsvConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
-        } else if (isReefInput) {
-            // Reef → Parquet
+        } else if (isLastraInput) {
+            // Lastra → Parquet
             LastraToParquetConverter converter = new LastraToParquetConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
         } else if (isCsvInput) {
-            // CSV → Reef
+            // CSV → Lastra
             CsvToLastraConverter converter = new CsvToLastraConverter(inputFile);
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 int rows = converter.convert(out);
                 printResult(inputFile, outputFile, rows);
             }
         } else if (smart || best) {
-            // Parquet → Reef (smart/best mode)
+            // Parquet → Lastra (smart/best mode)
             SmartParquetToLastraConverter.Mode mode = best
                     ? SmartParquetToLastraConverter.Mode.BEST
                     : SmartParquetToLastraConverter.Mode.SMART;
@@ -149,7 +149,7 @@ public final class Main {
                 printResult(inputFile, outputFile, rows);
             }
         } else {
-            // Parquet → Reef (standard mode)
+            // Parquet → Lastra (standard mode)
             ParquetToLastraConverter.Builder builder = ParquetToLastraConverter.builder(inputFile);
 
             if (columnsArg != null) {
@@ -168,11 +168,11 @@ public final class Main {
     }
 
     private static void printResult(File inputFile, File outputFile, int rows) {
-        long reefSize = outputFile.length();
+        long lastraSize = outputFile.length();
         long parquetSize = inputFile.length();
-        double ratio = parquetSize > 0 ? (double) parquetSize / reefSize : 0;
+        double ratio = parquetSize > 0 ? (double) parquetSize / lastraSize : 0;
         System.out.printf("%nConverted %,d rows → %s (%,d bytes, %.1fx compression vs parquet)%n",
-                rows, outputFile.getName(), reefSize, ratio);
+                rows, outputFile.getName(), lastraSize, ratio);
     }
 
     private static void parseColumns(String columnsArg, ParquetToLastraConverter.Builder builder) {
@@ -236,14 +236,14 @@ public final class Main {
     }
 
     private static void printUsage() {
-        System.out.println("Usage: reef-convert <input> [output] [options]");
+        System.out.println("Usage: lastra-convert <input> [output] [options]");
         System.out.println();
         System.out.println("Formats (auto-detected by extension):");
-        System.out.println("  .parquet/.pqt → Reef     .csv/.tsv → Reef");
+        System.out.println("  .parquet/.pqt → Lastra     .csv/.tsv → Lastra");
         System.out.println("  .lastra → Parquet           .lastra → CSV (if output is .csv)");
         System.out.println();
         System.out.println("Options:");
-        System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Reef)");
+        System.out.println("  --columns COL:TYPE:CODEC,...   Column mappings (Parquet/CSV→Lastra)");
         System.out.println("  --smart                        Auto-select best codec per column (fast)");
         System.out.println("  --best                         Try all codecs per column (optimal)");
         System.out.println("  --inspect                      Show file structure and exit");
@@ -252,11 +252,11 @@ public final class Main {
         System.out.println("Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip");
         System.out.println();
         System.out.println("Examples:");
-        System.out.println("  reef-convert data.parquet                      # Parquet → Reef");
-        System.out.println("  reef-convert data.parquet --best               # Parquet → Reef (optimal)");
-        System.out.println("  reef-convert data.csv                          # CSV → Reef");
-        System.out.println("  reef-convert data.lastra                         # Reef → Parquet");
-        System.out.println("  reef-convert data.lastra output.csv              # Reef → CSV");
-        System.out.println("  reef-convert data.lastra --inspect               # Inspect Lastra file");
+        System.out.println("  lastra-convert data.parquet                      # Parquet → Lastra");
+        System.out.println("  lastra-convert data.parquet --best               # Parquet → Lastra (optimal)");
+        System.out.println("  lastra-convert data.csv                          # CSV → Lastra");
+        System.out.println("  lastra-convert data.lastra                         # Lastra → Parquet");
+        System.out.println("  lastra-convert data.lastra output.csv              # Lastra → CSV");
+        System.out.println("  lastra-convert data.lastra --inspect               # Inspect Lastra file");
     }
 }

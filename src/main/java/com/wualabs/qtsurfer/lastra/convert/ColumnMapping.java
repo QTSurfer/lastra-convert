@@ -5,7 +5,7 @@ import com.wualabs.qtsurfer.lastra.Lastra;
 import java.util.Map;
 
 /**
- * Maps a source column to a Reef series column with its data type and codec.
+ * Maps a source column to a Lastra series column with its data type and codec.
  */
 public final class ColumnMapping {
 
@@ -35,7 +35,7 @@ public final class ColumnMapping {
     public Map<String, String> metadata() { return metadata; }
 
     /**
-     * Shorthand: same name for source and reef, no metadata.
+     * Shorthand: same name for source and lastra, no metadata.
      */
     public static ColumnMapping of(String name, Lastra.DataType dataType, Lastra.Codec codec) {
         return new ColumnMapping(name, name, dataType, codec);

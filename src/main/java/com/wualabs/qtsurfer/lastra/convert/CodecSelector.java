@@ -7,7 +7,7 @@ import com.wualabs.qtsurfer.alp.AlpCompressor;
 import com.wualabs.qtsurfer.lastra.codec.RawCodec;
 
 /**
- * Selects the best Reef codec for a double column by trial-encoding.
+ * Selects the best Lastra codec for a double column by trial-encoding.
  *
  * <p>Supports two modes:
  * <ul>

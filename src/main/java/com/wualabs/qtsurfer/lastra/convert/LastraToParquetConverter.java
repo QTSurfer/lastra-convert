@@ -52,10 +52,10 @@ public final class LastraToParquetConverter implements LastraConverter {
             return 0;
         }
 
-        // Build Parquet schema from Reef column descriptors
+        // Build Parquet schema from Lastra column descriptors
         MessageType schema = buildSchema(columns);
 
-        // Read all column data from Reef
+        // Read all column data from Lastra
         Object[] columnData = new Object[columns.size()];
         for (int i = 0; i < columns.size(); i++) {
             ColumnDescriptor col = columns.get(i);
