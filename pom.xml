@@ -6,7 +6,7 @@
 
     <groupId>com.wualabs.qtsurfer</groupId>
     <artifactId>lastra-convert</artifactId>
-    <version>0.8.0</version>
+    <version>0.9.0</version>
     <packaging>jar</packaging>
 
     <name>QTSurfer Lastra Convert</name>
@@ -62,6 +62,17 @@
             <groupId>com.wualabs.qtsurfer</groupId>
             <artifactId>parquet-lite</artifactId>
             <version>${parquet-lite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>3.3.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Test -->
