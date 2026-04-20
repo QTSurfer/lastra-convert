@@ -6,7 +6,7 @@
 
     <groupId>com.wualabs.qtsurfer</groupId>
     <artifactId>lastra-convert</artifactId>
-    <version>0.10.2</version>
+    <version>0.10.3</version>
     <packaging>jar</packaging>
 
     <name>QTSurfer Lastra Convert</name>
@@ -53,13 +53,21 @@
     </repositories>
 
     <dependencies>
+        <!--
+            JitPack coordinates: sibling Lastra + parquet-lite repos are built + served
+            by jitpack.io (see the <repositories> block above). When we eventually
+            publish these to Maven Central we'll switch back to com.wualabs.qtsurfer as
+            the canonical groupId — the lastra-convert/api-rest-vertx coords would
+            follow suit. For now JitPack lets OSS consumers resolve the whole tree
+            without any local mvn install of sibling repos.
+        -->
         <dependency>
-            <groupId>com.wualabs.qtsurfer</groupId>
-            <artifactId>lastra</artifactId>
+            <groupId>com.github.QTSurfer</groupId>
+            <artifactId>lastra-java</artifactId>
             <version>${lastra.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.wualabs.qtsurfer</groupId>
+            <groupId>com.github.QTSurfer</groupId>
             <artifactId>parquet-lite</artifactId>
             <version>${parquet-lite.version}</version>
         </dependency>
