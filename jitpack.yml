@@ -1,4 +1,10 @@
 jdk:
-  - openjdk11
+  - openjdk17
+before_install:
+  # JitPack's default Maven on the openjdk images is 3.5.x, but
+  # maven-compiler-plugin 3.13 requires Maven 3.6.3+. Install a recent Maven
+  # locally and pin PATH for the install step.
+  - wget -q https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz
+  - tar -xzf apache-maven-3.9.9-bin.tar.gz
 install:
-  - mvn -DskipTests install
+  - PATH=$PWD/apache-maven-3.9.9/bin:$PATH mvn -DskipTests install
