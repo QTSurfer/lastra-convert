@@ -27,8 +27,9 @@ import java.util.stream.Stream;
 
 /**
  * Backfills hourly Lastra files per instrument from a QDB tickers Parquet hourly dump. Produces
- * one {@code {base}/{exchange}/{INSTRUMENT}/{YYYY-MM-DD}/h{HH}.lastra} per distinct {@code ins}
- * value found in the parquet.
+ * one {@code {base}/{exchange}/{INSTRUMENT}/{YYYY-MM}/{DD}/h{HH}.lastra} per distinct {@code ins}
+ * value found in the parquet. The month/day split mirrors the parquet backup tree and keeps
+ * per-directory entry counts bounded.
  *
  * <p>Schema matches {@code LastraSegmentWriter} (cache-v2): series columns
  * {@code ts,opn,hig,low,cls,vol,vlq,bid,bsz,ask,asz}; ts stored in <b>milliseconds</b>
@@ -53,7 +54,7 @@ public final class LastraHourlyBackfill {
             System.err.println("Usage: LastraHourlyBackfill <exchange> <parquet-file-or-dir> <base-out-dir> [--skip-existing] [--from YYYY-MM-DD] [--to YYYY-MM-DD]");
             System.err.println("  exchange:            e.g. binance");
             System.err.println("  parquet-file-or-dir: single parquet file, or directory walked recursively for tickers_*.parquet");
-            System.err.println("  base-out-dir:        e.g. /data/v2 (writes under {base}/{exchange}/{INST}/{day}/h{HH}.lastra)");
+            System.err.println("  base-out-dir:        e.g. /data/v2 (writes under {base}/{exchange}/{INST}/YYYY-MM/DD/h{HH}.lastra)");
             System.err.println("  --skip-existing:     skip parquets whose output already exists for every instrument");
             System.err.println("  --from / --to:       inclusive date filter on the parquet filename's day token");
             System.exit(2);
@@ -155,19 +156,21 @@ public final class LastraHourlyBackfill {
             if (rows.isEmpty()) continue;
             rows.sort(Comparator.comparingLong(r -> r.tsMs));
 
-            String dayStr, hourStr;
+            String monthStr, dayOfMonthStr, hourStr;
             if (day != null && hourFromFilename >= 0) {
-                dayStr = day.toString();
+                monthStr = String.format(Locale.ROOT, "%04d-%02d", day.getYear(), day.getMonthValue());
+                dayOfMonthStr = String.format(Locale.ROOT, "%02d", day.getDayOfMonth());
                 hourStr = String.format(Locale.ROOT, "%02d", hourFromFilename);
             } else {
                 long firstTsMs = rows.get(0).tsMs;
                 ZonedDateTime zdt = Instant.ofEpochMilli(firstTsMs).atZone(ZoneOffset.UTC);
-                dayStr = String.format(Locale.ROOT, "%04d-%02d-%02d",
-                        zdt.getYear(), zdt.getMonthValue(), zdt.getDayOfMonth());
+                monthStr = String.format(Locale.ROOT, "%04d-%02d", zdt.getYear(), zdt.getMonthValue());
+                dayOfMonthStr = String.format(Locale.ROOT, "%02d", zdt.getDayOfMonth());
                 hourStr = String.format(Locale.ROOT, "%02d", zdt.getHour());
             }
 
-            Path dir = baseDir.resolve(exchange).resolve(instrument.replace('/', '_')).resolve(dayStr);
+            Path dir = baseDir.resolve(exchange).resolve(instrument.replace('/', '_'))
+                    .resolve(monthStr).resolve(dayOfMonthStr);
             Path finalPath = dir.resolve("h" + hourStr + ".lastra");
             if (skipExisting && Files.exists(finalPath)) {
                 skippedFiles++;

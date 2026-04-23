@@ -27,8 +27,8 @@ import java.util.stream.Stream;
 
 /**
  * Backfills hourly Lastra files per instrument from a QDB {@code klines} Parquet hourly dump.
- * Produces one {@code {base}/{exchange}/{INSTRUMENT}/{YYYY-MM-DD}/h{HH}.lastra} per distinct
- * {@code ins} value found in the parquet.
+ * Produces one {@code {base}/{exchange}/{INSTRUMENT}/{YYYY-MM}/{DD}/klines/h{HH}.lastra} per
+ * distinct {@code ins} value found in the parquet.
  *
  * <p>Companion to {@link LastraHourlyBackfill} (which handles tickers). The schemas differ: klines
  * carries OHLCV + trade count (integer) and lacks the bid/ask sizes, so we can't reuse the tickers
@@ -158,23 +158,25 @@ public final class LastraKlinesHourlyBackfill {
             if (rows.isEmpty()) continue;
             rows.sort(Comparator.comparingLong(r -> r.tsMs));
 
-            String dayStr, hourStr;
+            String monthStr, dayOfMonthStr, hourStr;
             if (day != null && hourFromFilename >= 0) {
-                dayStr = day.toString();
+                monthStr = String.format(Locale.ROOT, "%04d-%02d", day.getYear(), day.getMonthValue());
+                dayOfMonthStr = String.format(Locale.ROOT, "%02d", day.getDayOfMonth());
                 hourStr = String.format(Locale.ROOT, "%02d", hourFromFilename);
             } else {
                 long firstTsMs = rows.get(0).tsMs;
                 ZonedDateTime zdt = Instant.ofEpochMilli(firstTsMs).atZone(ZoneOffset.UTC);
-                dayStr = String.format(Locale.ROOT, "%04d-%02d-%02d",
-                        zdt.getYear(), zdt.getMonthValue(), zdt.getDayOfMonth());
+                monthStr = String.format(Locale.ROOT, "%04d-%02d", zdt.getYear(), zdt.getMonthValue());
+                dayOfMonthStr = String.format(Locale.ROOT, "%02d", zdt.getDayOfMonth());
                 hourStr = String.format(Locale.ROOT, "%02d", zdt.getHour());
             }
 
             // Namespace klines under a `klines/` subdir so we don't collide with
-            // the tickers writer which targets `{base}/{exch}/{ins}/{day}/h{HH}.lastra`
+            // the tickers writer which targets `{base}/{exch}/{ins}/YYYY-MM/DD/h{HH}.lastra`
             // — that way existing tickers readers ignore kline files and the
             // --skip-existing flag only matches actual prior kline output.
-            Path dir = baseDir.resolve(exchange).resolve(instrument.replace('/', '_')).resolve(dayStr).resolve("klines");
+            Path dir = baseDir.resolve(exchange).resolve(instrument.replace('/', '_'))
+                    .resolve(monthStr).resolve(dayOfMonthStr).resolve("klines");
             Path finalPath = dir.resolve("h" + hourStr + ".lastra");
             if (skipExisting && Files.exists(finalPath)) {
                 skippedFiles++;
