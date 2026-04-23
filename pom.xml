@@ -6,7 +6,7 @@
 
     <groupId>com.wualabs.qtsurfer</groupId>
     <artifactId>lastra-convert</artifactId>
-    <version>0.11.0</version>
+    <version>0.12.0</version>
     <packaging>jar</packaging>
 
     <name>QTSurfer Lastra Convert</name>
