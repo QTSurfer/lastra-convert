@@ -251,21 +251,21 @@ public final class LastraHourlyBackfill {
             ask[i] = r.values[8];
             asz[i] = r.values[9];
         }
-        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile());
-             LastraWriter w = new LastraWriter(fos)) {
-            w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.addSeriesColumn("opn", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("hig", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("low", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("cls", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("vol", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("vlq", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("bid", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("bsz", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("ask", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("asz", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.writeSeries(n, ts, opn, hig, low, cls, vol, vlq, bid, bsz, ask, asz);
-            w.close();
+        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile())) {
+            try (LastraWriter w = new LastraWriter(fos)) {
+                w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.addSeriesColumn("opn", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("hig", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("low", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("cls", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("vol", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("vlq", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("bid", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("bsz", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("ask", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("asz", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.writeSeries(n, ts, opn, hig, low, cls, vol, vlq, bid, bsz, ask, asz);
+            }
             fos.getFD().sync();
         }
     }

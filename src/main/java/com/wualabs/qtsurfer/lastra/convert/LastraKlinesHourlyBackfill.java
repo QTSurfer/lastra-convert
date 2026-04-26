@@ -254,19 +254,19 @@ public final class LastraKlinesHourlyBackfill {
             vlq[i] = r.values[5];
             ntr[i] = r.ntr;
         }
-        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile());
-             LastraWriter w = new LastraWriter(fos)) {
-            w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.addSeriesColumn("opn", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("hig", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("low", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("cls", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("vol", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("vlq", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            // Trade count — small, monotonic within session — compresses well with DELTA_VARINT.
-            w.addSeriesColumn("ntr", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.writeSeries(n, ts, opn, hig, low, cls, vol, vlq, ntr);
-            w.close();
+        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile())) {
+            try (LastraWriter w = new LastraWriter(fos)) {
+                w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.addSeriesColumn("opn", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("hig", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("low", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("cls", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("vol", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("vlq", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                // Trade count — small, monotonic within session — compresses well with DELTA_VARINT.
+                w.addSeriesColumn("ntr", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.writeSeries(n, ts, opn, hig, low, cls, vol, vlq, ntr);
+            }
             fos.getFD().sync();
         }
     }

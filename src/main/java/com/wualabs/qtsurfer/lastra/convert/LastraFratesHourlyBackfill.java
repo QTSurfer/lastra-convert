@@ -243,15 +243,15 @@ public final class LastraFratesHourlyBackfill {
             r8[i] = r.r8;
             minutes[i] = r.minutes;
         }
-        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile());
-             LastraWriter w = new LastraWriter(fos)) {
-            w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.addSeriesColumn("date", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.addSeriesColumn("r1", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("r8", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
-            w.addSeriesColumn("minutes", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
-            w.writeSeries(n, ts, date, r1, r8, minutes);
-            w.close();
+        try (FileOutputStream fos = new FileOutputStream(tmpPath.toFile())) {
+            try (LastraWriter w = new LastraWriter(fos)) {
+                w.addSeriesColumn("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.addSeriesColumn("date", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.addSeriesColumn("r1", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("r8", Lastra.DataType.DOUBLE, Lastra.Codec.ALP);
+                w.addSeriesColumn("minutes", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT);
+                w.writeSeries(n, ts, date, r1, r8, minutes);
+            }
             fos.getFD().sync();
         }
     }
