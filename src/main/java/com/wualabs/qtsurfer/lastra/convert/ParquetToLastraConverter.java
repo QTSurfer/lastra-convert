@@ -12,8 +12,10 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,27 +37,51 @@ import java.util.stream.Stream;
  *     int rows = converter.convert(out);
  * }
  * }</pre>
+ *
+ * <p>Row filtering — useful when the source parquet bundles many series in one file (e.g. an
+ * hourly export carrying every {@code (mkt, ins)} pair) and the caller wants one Lastra blob per
+ * subset:
+ * <pre>{@code
+ * var converter = ParquetToLastraConverter.builder(parquetFile)
+ *     .map("t", "ts", DataType.LONG, Codec.DELTA_VARINT)
+ *     .map("close", DataType.DOUBLE, Codec.ALP)
+ *     .filter(row -> "binance".equals(row.get("mkt")) && "BTC/USDT".equals(row.get("ins")),
+ *             "mkt", "ins")
+ *     .build();
+ * }</pre>
+ * The {@code filterColumns} ({@code "mkt", "ins"} above) are read alongside the mapped columns but
+ * are not written to the Lastra output.
  */
 public final class ParquetToLastraConverter implements LastraConverter {
 
     private final File parquetFile;
     private final List<ColumnMapping> mappings;
+    private final Predicate<Map<String, Object>> rowFilter;
+    private final List<String> filterColumns;
 
-    private ParquetToLastraConverter(File parquetFile, List<ColumnMapping> mappings) {
+    private ParquetToLastraConverter(File parquetFile, List<ColumnMapping> mappings,
+                                     Predicate<Map<String, Object>> rowFilter,
+                                     List<String> filterColumns) {
         this.parquetFile = parquetFile;
         this.mappings = List.copyOf(mappings);
+        this.rowFilter = rowFilter;
+        this.filterColumns = List.copyOf(filterColumns);
     }
 
     @Override
     public int convert(OutputStream out) throws IOException {
-        Collection<String> sourceColumns = mappings.stream()
-                .map(ColumnMapping::sourceName)
-                .collect(Collectors.toList());
+        // Read source = mapped columns + any extra columns the row filter needs (deduped, mapped
+        // columns first so the read order is stable for downstream consumers).
+        LinkedHashSet<String> sourceColumns = new LinkedHashSet<>();
+        for (ColumnMapping m : mappings) {
+            sourceColumns.add(m.sourceName());
+        }
+        sourceColumns.addAll(filterColumns);
 
-        // Read all rows into column arrays
         List<Map<String, Object>> rows;
         try (Stream<Map<String, Object>> stream = ParquetReader.streamContent(parquetFile, new MapHydratorSupplier(), sourceColumns)) {
-            rows = stream.collect(Collectors.toList());
+            Stream<Map<String, Object>> piped = rowFilter == null ? stream : stream.filter(rowFilter);
+            rows = piped.collect(Collectors.toList());
         }
 
         if (rows.isEmpty()) {
@@ -127,6 +153,8 @@ public final class ParquetToLastraConverter implements LastraConverter {
     public static final class Builder {
         private final File parquetFile;
         private final List<ColumnMapping> mappings = new ArrayList<>();
+        private Predicate<Map<String, Object>> rowFilter;
+        private final List<String> filterColumns = new ArrayList<>();
 
         private Builder(File parquetFile) {
             this.parquetFile = parquetFile;
@@ -147,11 +175,31 @@ public final class ParquetToLastraConverter implements LastraConverter {
             return this;
         }
 
+        /**
+         * Drop rows that do not satisfy {@code predicate} before they reach the Lastra encoder.
+         *
+         * <p>The {@code Map} passed to the predicate carries the union of mapped {@code sourceName}s
+         * and any {@code filterColumns} declared here. {@code filterColumns} are read from the
+         * parquet alongside the mapped columns but are not written to the output Lastra; use them to
+         * gate rows on metadata that is not part of the Lastra schema (e.g. a {@code mkt} or
+         * {@code ins} column on a multi-instrument hourly export).
+         *
+         * <p>Calling this method twice replaces the previous filter.
+         */
+        public Builder filter(Predicate<Map<String, Object>> predicate, String... filterColumns) {
+            this.rowFilter = predicate;
+            this.filterColumns.clear();
+            for (String c : filterColumns) {
+                this.filterColumns.add(c);
+            }
+            return this;
+        }
+
         public ParquetToLastraConverter build() {
             if (mappings.isEmpty()) {
                 throw new IllegalStateException("At least one column mapping is required");
             }
-            return new ParquetToLastraConverter(parquetFile, mappings);
+            return new ParquetToLastraConverter(parquetFile, mappings, rowFilter, filterColumns);
         }
     }
 

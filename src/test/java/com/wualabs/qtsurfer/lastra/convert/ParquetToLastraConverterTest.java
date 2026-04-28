@@ -76,4 +76,90 @@ class ParquetToLastraConverterTest {
         assertThat(reader.readSeriesDouble("close")).containsExactly(closes);
         assertThat(reader.readSeriesDouble("volume")).containsExactly(vols);
     }
+
+    @Test
+    void filtersRowsByPredicateOnExtraColumn() throws Exception {
+        // Source parquet carries two series interleaved (mkt = "binance" rows + mkt = "bybit"
+        // rows). The filter should keep only the binance rows in the Lastra output, while `mkt`
+        // itself should NOT appear as a Lastra column (it's declared as a filter-only column).
+        File parquetFile = tempDir.resolve("multi.parquet").toFile();
+
+        org.apache.parquet.schema.MessageType schema = org.apache.parquet.schema.Types.buildMessage()
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY)
+                .as(org.apache.parquet.schema.LogicalTypeAnnotation.stringType()).named("mkt")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64).named("ts")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE).named("close")
+                .named("ohlcv");
+
+        Object[][] rows = new Object[][] {
+                {"binance", 1000L, 100.0},
+                {"bybit",   1000L, 200.0},
+                {"binance", 2000L, 101.0},
+                {"bybit",   2000L, 201.0},
+                {"binance", 3000L, 102.0}
+        };
+
+        try (var writer = ParquetWriter.<Object[]>writeFile(schema, parquetFile,
+                (record, vw) -> {
+                    vw.write("mkt", record[0]);
+                    vw.write("ts", record[1]);
+                    vw.write("close", record[2]);
+                })) {
+            for (Object[] row : rows) {
+                writer.write(row);
+            }
+        }
+
+        var converter = ParquetToLastraConverter.builder(parquetFile)
+                .map("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
+                .map("close", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .filter(row -> "binance".equals(row.get("mkt")), "mkt")
+                .build();
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int rowCount = converter.convert(out);
+
+        // 3 binance rows survive the filter, 2 bybit rows are dropped.
+        assertThat(rowCount).isEqualTo(3);
+
+        LastraReader reader = LastraReader.from(out.toByteArray());
+        assertThat(reader.seriesRowCount()).isEqualTo(3);
+        // Only the two mapped columns reach the output; mkt is filter-only.
+        assertThat(reader.seriesColumns()).hasSize(2);
+        assertThat(reader.seriesColumns().stream().map(c -> c.name())).containsExactly("ts", "close");
+
+        assertThat(reader.readSeriesLong("ts")).containsExactly(1000L, 2000L, 3000L);
+        assertThat(reader.readSeriesDouble("close")).containsExactly(100.0, 101.0, 102.0);
+    }
+
+    @Test
+    void filterMatchingZeroRowsReturnsZero() throws Exception {
+        File parquetFile = tempDir.resolve("nomatch.parquet").toFile();
+
+        org.apache.parquet.schema.MessageType schema = org.apache.parquet.schema.Types.buildMessage()
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY)
+                .as(org.apache.parquet.schema.LogicalTypeAnnotation.stringType()).named("mkt")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64).named("ts")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE).named("close")
+                .named("ohlcv");
+
+        try (var writer = ParquetWriter.<Object[]>writeFile(schema, parquetFile,
+                (record, vw) -> {
+                    vw.write("mkt", record[0]);
+                    vw.write("ts", record[1]);
+                    vw.write("close", record[2]);
+                })) {
+            writer.write(new Object[]{"binance", 1000L, 100.0});
+            writer.write(new Object[]{"bybit",   1000L, 200.0});
+        }
+
+        var converter = ParquetToLastraConverter.builder(parquetFile)
+                .map("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
+                .map("close", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .filter(row -> "kraken".equals(row.get("mkt")), "mkt")
+                .build();
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        assertThat(converter.convert(out)).isZero();
+    }
 }
