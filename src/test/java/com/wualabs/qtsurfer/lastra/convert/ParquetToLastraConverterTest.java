@@ -133,6 +133,84 @@ class ParquetToLastraConverterTest {
     }
 
     @Test
+    void transformAggregatesRowsBeforeEncode() throws Exception {
+        // Source: 6 rows of (ts, close). Transform: pair them up (3 buckets of 2), keep last
+        // close + last ts per bucket, sum-style. Output: 3 Lastra rows.
+        File parquetFile = tempDir.resolve("transform.parquet").toFile();
+
+        org.apache.parquet.schema.MessageType schema = org.apache.parquet.schema.Types.buildMessage()
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64).named("ts")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE).named("close")
+                .named("ohlcv");
+
+        long[] tss = {1L, 2L, 3L, 4L, 5L, 6L};
+        double[] cls = {10.0, 11.0, 12.0, 13.0, 14.0, 15.0};
+
+        try (var writer = ParquetWriter.<Object[]>writeFile(schema, parquetFile,
+                (record, vw) -> {
+                    vw.write("ts", record[0]);
+                    vw.write("close", record[1]);
+                })) {
+            for (int i = 0; i < tss.length; i++) {
+                writer.write(new Object[]{tss[i], cls[i]});
+            }
+        }
+
+        var converter = ParquetToLastraConverter.builder(parquetFile)
+                .map("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
+                .map("close", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .transform(rows -> {
+                    java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+                    for (int i = 0; i < rows.size(); i += 2) {
+                        int end = Math.min(i + 2, rows.size());
+                        java.util.Map<String, Object> r = new java.util.LinkedHashMap<>();
+                        r.put("ts", rows.get(end - 1).get("ts"));
+                        r.put("close", rows.get(end - 1).get("close"));
+                        out.add(r);
+                    }
+                    return out;
+                })
+                .build();
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int rowCount = converter.convert(out);
+        assertThat(rowCount).isEqualTo(3);
+
+        LastraReader reader = LastraReader.from(out.toByteArray());
+        assertThat(reader.seriesRowCount()).isEqualTo(3);
+        // Bucket pairs: (1,2)→last=2, (3,4)→4, (5,6)→6.
+        assertThat(reader.readSeriesLong("ts")).containsExactly(2L, 4L, 6L);
+        assertThat(reader.readSeriesDouble("close")).containsExactly(11.0, 13.0, 15.0);
+    }
+
+    @Test
+    void transformReturningEmptyTreatsLikeEmptySource() throws Exception {
+        File parquetFile = tempDir.resolve("transform-empty.parquet").toFile();
+        org.apache.parquet.schema.MessageType schema = org.apache.parquet.schema.Types.buildMessage()
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64).named("ts")
+                .required(org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE).named("close")
+                .named("ohlcv");
+
+        try (var writer = ParquetWriter.<Object[]>writeFile(schema, parquetFile,
+                (record, vw) -> {
+                    vw.write("ts", record[0]);
+                    vw.write("close", record[1]);
+                })) {
+            writer.write(new Object[]{1L, 1.0});
+            writer.write(new Object[]{2L, 2.0});
+        }
+
+        var converter = ParquetToLastraConverter.builder(parquetFile)
+                .map("ts", Lastra.DataType.LONG, Lastra.Codec.DELTA_VARINT)
+                .map("close", Lastra.DataType.DOUBLE, Lastra.Codec.ALP)
+                .transform(rows -> java.util.Collections.emptyList())
+                .build();
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        assertThat(converter.convert(out)).isZero();
+    }
+
+    @Test
     void filterMatchingZeroRowsReturnsZero() throws Exception {
         File parquetFile = tempDir.resolve("nomatch.parquet").toFile();
 

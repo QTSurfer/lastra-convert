@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,6 +52,20 @@ import java.util.stream.Stream;
  * }</pre>
  * The {@code filterColumns} ({@code "mkt", "ins"} above) are read alongside the mapped columns but
  * are not written to the Lastra output.
+ *
+ * <p>Row transform — for time-bucket resampling, deduplication, or any row-list-level mutation
+ * that needs the post-filter row set:
+ * <pre>{@code
+ * var converter = ParquetToLastraConverter.builder(parquetFile)
+ *     .map("t", "ts", DataType.LONG, Codec.DELTA_VARINT)
+ *     .map("close", DataType.DOUBLE, Codec.ALP)
+ *     .filter(row -> "binance".equals(row.get("mkt")), "mkt")
+ *     .transform(rows -> resample(rows, srcCadence, targetCadence))
+ *     .build();
+ * }</pre>
+ * The transform runs after the filter and before column-array encoding; output rows still need
+ * to expose the source-name columns the {@code map} declarations reference (unmapped extras are
+ * ignored).
  */
 public final class ParquetToLastraConverter implements LastraConverter {
 
@@ -58,14 +73,17 @@ public final class ParquetToLastraConverter implements LastraConverter {
     private final List<ColumnMapping> mappings;
     private final Predicate<Map<String, Object>> rowFilter;
     private final List<String> filterColumns;
+    private final UnaryOperator<List<Map<String, Object>>> rowTransform;
 
     private ParquetToLastraConverter(File parquetFile, List<ColumnMapping> mappings,
                                      Predicate<Map<String, Object>> rowFilter,
-                                     List<String> filterColumns) {
+                                     List<String> filterColumns,
+                                     UnaryOperator<List<Map<String, Object>>> rowTransform) {
         this.parquetFile = parquetFile;
         this.mappings = List.copyOf(mappings);
         this.rowFilter = rowFilter;
         this.filterColumns = List.copyOf(filterColumns);
+        this.rowTransform = rowTransform;
     }
 
     @Override
@@ -82,6 +100,14 @@ public final class ParquetToLastraConverter implements LastraConverter {
         try (Stream<Map<String, Object>> stream = ParquetReader.streamContent(parquetFile, new MapHydratorSupplier(), sourceColumns)) {
             Stream<Map<String, Object>> piped = rowFilter == null ? stream : stream.filter(rowFilter);
             rows = piped.collect(Collectors.toList());
+        }
+
+        // Optional row transform — applied AFTER filter, BEFORE column array build. The
+        // transform may grow, shrink, or replace rows wholesale (e.g. resampling 1s bars to
+        // 1m bars). Returning null is treated as "no rows", matching empty-input semantics.
+        if (rowTransform != null) {
+            List<Map<String, Object>> transformed = rowTransform.apply(rows);
+            rows = transformed == null ? java.util.Collections.emptyList() : transformed;
         }
 
         if (rows.isEmpty()) {
@@ -155,6 +181,7 @@ public final class ParquetToLastraConverter implements LastraConverter {
         private final List<ColumnMapping> mappings = new ArrayList<>();
         private Predicate<Map<String, Object>> rowFilter;
         private final List<String> filterColumns = new ArrayList<>();
+        private UnaryOperator<List<Map<String, Object>>> rowTransform;
 
         private Builder(File parquetFile) {
             this.parquetFile = parquetFile;
@@ -195,11 +222,27 @@ public final class ParquetToLastraConverter implements LastraConverter {
             return this;
         }
 
+        /**
+         * Apply a transform to the list of rows AFTER {@link #filter} but BEFORE column array
+         * encoding. Use cases: time-bucket resampling (1s bars → 1m bars), down-/up-sampling,
+         * row deduplication beyond what a stateless predicate can express. The transform may
+         * grow or shrink the list; output rows must still carry the same source-name columns
+         * the {@link #map} declarations reference (unmapped extras are ignored).
+         *
+         * <p>Returning {@code null} is treated as "no rows" — same as an empty source parquet.
+         *
+         * <p>Calling this method twice replaces the previous transform.
+         */
+        public Builder transform(UnaryOperator<List<Map<String, Object>>> transform) {
+            this.rowTransform = transform;
+            return this;
+        }
+
         public ParquetToLastraConverter build() {
             if (mappings.isEmpty()) {
                 throw new IllegalStateException("At least one column mapping is required");
             }
-            return new ParquetToLastraConverter(parquetFile, mappings, rowFilter, filterColumns);
+            return new ParquetToLastraConverter(parquetFile, mappings, rowFilter, filterColumns, rowTransform);
         }
     }
 
