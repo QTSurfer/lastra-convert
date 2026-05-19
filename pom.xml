@@ -6,7 +6,7 @@
 
     <groupId>com.wualabs.qtsurfer</groupId>
     <artifactId>lastra-convert</artifactId>
-    <version>0.13.2</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>QTSurfer Lastra Convert</name>
@@ -39,7 +39,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
-        <lastra.version>0.8.1</lastra.version>
+        <lastra.version>0.8.3</lastra.version>
         <parquet-lite.version>2.0.0</parquet-lite.version>
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
