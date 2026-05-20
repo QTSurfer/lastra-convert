@@ -3,6 +3,7 @@ package com.wualabs.qtsurfer.lastra.convert;
 import com.wualabs.qtsurfer.lastra.ColumnDescriptor;
 import com.wualabs.qtsurfer.lastra.Lastra;
 import com.wualabs.qtsurfer.lastra.LastraReader;
+import com.wualabs.qtsurfer.lastra.RowGroup;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +13,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -45,24 +47,6 @@ public final class LastraToCsvConverter implements LastraConverter {
             return 0;
         }
 
-        // Read all column data
-        Object[] columnData = new Object[columns.size()];
-        for (int i = 0; i < columns.size(); i++) {
-            ColumnDescriptor col = columns.get(i);
-            switch (col.dataType()) {
-                case LONG:
-                    columnData[i] = reader.readSeriesLong(col.name());
-                    break;
-                case DOUBLE:
-                    columnData[i] = reader.readSeriesDouble(col.name());
-                    break;
-                case BINARY:
-                    columnData[i] = reader.readSeriesBinary(col.name());
-                    break;
-            }
-        }
-
-        // Write CSV
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
 
         // Header
@@ -73,33 +57,54 @@ public final class LastraToCsvConverter implements LastraConverter {
         }
         pw.println(header);
 
-        // Rows
-        for (int row = 0; row < rowCount; row++) {
-            StringBuilder line = new StringBuilder();
-            for (int c = 0; c < columns.size(); c++) {
-                if (c > 0) line.append(delimiter);
-                ColumnDescriptor col = columns.get(c);
-                switch (col.dataType()) {
-                    case LONG:
-                        line.append(((long[]) columnData[c])[row]);
-                        break;
-                    case DOUBLE:
-                        line.append(BigDecimal.valueOf(((double[]) columnData[c])[row]).stripTrailingZeros().toPlainString());
-                        break;
-                    case BINARY:
-                        String val = new String(((byte[][]) columnData[c])[row], StandardCharsets.UTF_8);
-                        if (val.indexOf(delimiter) >= 0 || val.contains("\"")) {
-                            line.append('"').append(val.replace("\"", "\"\"")).append('"');
-                        } else {
-                            line.append(val);
-                        }
-                        break;
+        // Stream row-group by row-group so heap residency stays bounded to one RG's
+        // decoded primitive arrays — same reason as LastraToParquetConverter (#GOAL3).
+        int totalWritten = 0;
+        Iterator<RowGroup> rgIt = reader.readRowGroups();
+        StringBuilder line = new StringBuilder();
+        while (rgIt.hasNext()) {
+            RowGroup rg = rgIt.next();
+            int rgRows = rg.rowCount();
+            Object[] columnData = new Object[columns.size()];
+            for (int i = 0; i < columns.size(); i++) {
+                switch (columns.get(i).dataType()) {
+                    case LONG: columnData[i] = rg.getLongColumn(i); break;
+                    case DOUBLE: columnData[i] = rg.getDoubleColumn(i); break;
+                    case BINARY: columnData[i] = rg.getBinaryColumn(i); break;
                 }
             }
-            pw.println(line);
+            for (int row = 0; row < rgRows; row++) {
+                line.setLength(0);
+                for (int c = 0; c < columns.size(); c++) {
+                    if (c > 0) line.append(delimiter);
+                    ColumnDescriptor col = columns.get(c);
+                    switch (col.dataType()) {
+                        case LONG:
+                            line.append(((long[]) columnData[c])[row]);
+                            break;
+                        case DOUBLE:
+                            line.append(BigDecimal.valueOf(((double[]) columnData[c])[row]).stripTrailingZeros().toPlainString());
+                            break;
+                        case BINARY:
+                            String val = new String(((byte[][]) columnData[c])[row], StandardCharsets.UTF_8);
+                            if (val.indexOf(delimiter) >= 0 || val.contains("\"")) {
+                                line.append('"').append(val.replace("\"", "\"\"")).append('"');
+                            } else {
+                                line.append(val);
+                            }
+                            break;
+                    }
+                }
+                pw.println(line);
+            }
+            totalWritten += rgRows;
         }
 
         pw.flush();
-        return rowCount;
+        if (totalWritten != rowCount) {
+            throw new IOException(String.format(
+                    "Row count mismatch: footer says %d but iterated %d", rowCount, totalWritten));
+        }
+        return totalWritten;
     }
 }

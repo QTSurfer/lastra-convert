@@ -6,12 +6,14 @@ import com.wualabs.qtsurfer.parquet.ValueWriter;
 import com.wualabs.qtsurfer.lastra.ColumnDescriptor;
 import com.wualabs.qtsurfer.lastra.Lastra;
 import com.wualabs.qtsurfer.lastra.LastraReader;
+import com.wualabs.qtsurfer.lastra.RowGroup;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -55,34 +57,47 @@ public final class LastraToParquetConverter implements LastraConverter {
         // Build Parquet schema from Lastra column descriptors
         MessageType schema = buildSchema(columns);
 
-        // Read all column data from Lastra
-        Object[] columnData = new Object[columns.size()];
-        for (int i = 0; i < columns.size(); i++) {
-            ColumnDescriptor col = columns.get(i);
-            switch (col.dataType()) {
-                case LONG:
-                    columnData[i] = reader.readSeriesLong(col.name());
-                    break;
-                case DOUBLE:
-                    columnData[i] = reader.readSeriesDouble(col.name());
-                    break;
-                case BINARY:
-                    columnData[i] = reader.readSeriesBinary(col.name());
-                    break;
-            }
-        }
-
-        // Write Parquet
+        // Stream row-group by row-group: pull each RG out of the Lastra reader, write
+        // its rows to the Parquet writer, then advance — which clears the previous RG's
+        // decoded arrays. Heap residency stays bounded to one Lastra row group's worth
+        // of decoded primitive arrays plus the Parquet writer's internal page buffers,
+        // independent of total dataset size. The previous implementation loaded every
+        // column full-size before writing and OOM'd on 11.6M-row inputs under -Xmx512m.
         RowDehydrator dehydrator = new RowDehydrator(columns);
+        int totalWritten = 0;
         try (ParquetWriter<Integer> writer = ParquetWriter.writeOutputStream(
                 schema, out, dehydrator, CompressionCodecName.ZSTD)) {
-            dehydrator.setColumnData(columnData);
-            for (int row = 0; row < rowCount; row++) {
-                writer.write(row);
+            Iterator<RowGroup> rgIt = reader.readRowGroups();
+            while (rgIt.hasNext()) {
+                RowGroup rg = rgIt.next();
+                int rgRows = rg.rowCount();
+                // Materialise per-RG column arrays once (one decode per column per RG),
+                // then drive the writer row-by-row over this RG only.
+                Object[] columnData = new Object[columns.size()];
+                for (int i = 0; i < columns.size(); i++) {
+                    switch (columns.get(i).dataType()) {
+                        case LONG: columnData[i] = rg.getLongColumn(i); break;
+                        case DOUBLE: columnData[i] = rg.getDoubleColumn(i); break;
+                        case BINARY: columnData[i] = rg.getBinaryColumn(i); break;
+                    }
+                }
+                dehydrator.setColumnData(columnData);
+                for (int row = 0; row < rgRows; row++) {
+                    writer.write(row);
+                }
+                totalWritten += rgRows;
+                // columnData goes out of scope at loop bottom; rgIt.next() will then
+                // call RowGroup.clear() on `rg` before yielding the next group, so the
+                // decoded buffers become unreferenced.
             }
         }
 
-        return rowCount;
+        if (totalWritten != rowCount) {
+            // Defensive check — would indicate a footer/data mismatch we should surface.
+            throw new IOException(String.format(
+                    "Row count mismatch: footer says %d but iterated %d", rowCount, totalWritten));
+        }
+        return totalWritten;
     }
 
     /**
