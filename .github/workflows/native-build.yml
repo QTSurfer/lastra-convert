@@ -32,6 +32,10 @@ jobs:
             label: macos-arm64
             binary: lastra-convert
             asset: lastra-convert-macos-arm64
+          - os: windows-latest
+            label: windows-amd64
+            binary: lastra-convert.exe
+            asset: lastra-convert-windows-amd64.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -92,6 +96,9 @@ jobs:
              native-binaries/lastra-convert-linux-amd64/lastra-convert-linux-amd64
           mv native-binaries/lastra-convert-macos-arm64/lastra-convert \
              native-binaries/lastra-convert-macos-arm64/lastra-convert-macos-arm64
+          mv "native-binaries/lastra-convert-windows-amd64.exe/lastra-convert.exe" \
+             "native-binaries/lastra-convert-windows-amd64.exe/lastra-convert-windows-amd64.exe"
           gh release upload "$GITHUB_REF_NAME" \
             native-binaries/lastra-convert-linux-amd64/lastra-convert-linux-amd64 \
-            native-binaries/lastra-convert-macos-arm64/lastra-convert-macos-arm64
+            native-binaries/lastra-convert-macos-arm64/lastra-convert-macos-arm64 \
+            "native-binaries/lastra-convert-windows-amd64.exe/lastra-convert-windows-amd64.exe"

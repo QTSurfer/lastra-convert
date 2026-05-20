@@ -22,18 +22,32 @@ Bidirectional converter between [Lastra](https://github.com/QTSurfer/lastra-java
 mvn package
 ```
 
-This produces a fat JAR at `target/lastra-convert-0.10.5.jar`.
+This produces a fat JAR at `target/lastra-convert-1.4.0.jar`.
 
 ### Native binary (optional)
 
-Tag pushes also produce a GraalVM native binary (~68 MB, sub-50 ms
-cold-start, no JDK required at runtime). Download
-`lastra-convert-linux-amd64` or `lastra-convert-macos-arm64` from
-the matching GitHub release and run it directly:
+Tag pushes also produce GraalVM native binaries (~68 MB, sub-50 ms
+cold-start, no JDK required at runtime) for three platforms:
+
+| Platform | Asset |
+|----------|-------|
+| Linux x86_64 | `lastra-convert-linux-amd64` |
+| macOS arm64 | `lastra-convert-macos-arm64` |
+| Windows x86_64 | `lastra-convert-windows-amd64.exe` |
+
+Download the binary for your platform from the matching
+[GitHub release](https://github.com/QTSurfer/lastra-convert/releases)
+and run it directly:
 
 ```bash
+# Linux / macOS
 chmod +x lastra-convert-linux-amd64
 ./lastra-convert-linux-amd64 data.parquet --smart
+```
+
+```powershell
+# Windows
+.\lastra-convert-windows-amd64.exe data.parquet --smart
 ```
 
 To build the native binary locally (requires GraalVM CE 21+ on
@@ -41,10 +55,10 @@ PATH or via SDKMAN):
 
 ```bash
 mvn -Pnative -DskipTests package native:compile-no-fork
-# Binary at target/lastra-convert
+# Binary at target/lastra-convert (lastra-convert.exe on Windows)
 ```
 
-Or via Docker (no GraalVM install needed):
+Or via Docker (no GraalVM install needed, Linux binary only):
 
 ```bash
 docker build -f Dockerfile.native -t lastra-convert-native .
@@ -76,26 +90,26 @@ Codecs: delta_varint, alp, gorilla, pongo, raw, varlen, varlen_zstd, varlen_gzip
 
 ```bash
 # Auto-detect all columns (ALP for doubles)
-java -jar target/lastra-convert-0.10.5.jar data.parquet
+java -jar target/lastra-convert-1.4.0.jar data.parquet
 
 # Auto-select best codec per column (fast, sample-based)
-java -jar target/lastra-convert-0.10.5.jar data.parquet --smart
+java -jar target/lastra-convert-1.4.0.jar data.parquet --smart
 
 # Optimal codec selection (tries all codecs on all data)
-java -jar target/lastra-convert-0.10.5.jar data.parquet --best
+java -jar target/lastra-convert-1.4.0.jar data.parquet --best
 
 # Explicit column mappings
-java -jar target/lastra-convert-0.10.5.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
+java -jar target/lastra-convert-1.4.0.jar data.parquet --columns t:long:delta_varint,cls:double:pongo
 ```
 
 ### CSV → Lastra
 
 ```bash
 # Auto-detect types from first data row
-java -jar target/lastra-convert-0.10.5.jar data.csv
+java -jar target/lastra-convert-1.4.0.jar data.csv
 
 # Supports comma, tab, and semicolon delimiters (auto-detected)
-java -jar target/lastra-convert-0.10.5.jar data.tsv
+java -jar target/lastra-convert-1.4.0.jar data.tsv
 ```
 
 CSV type detection:
@@ -106,26 +120,26 @@ CSV type detection:
 ### Lastra → Parquet
 
 ```bash
-java -jar target/lastra-convert-0.10.5.jar data.lastra
+java -jar target/lastra-convert-1.4.0.jar data.lastra
 
 # Explicit output path
-java -jar target/lastra-convert-0.10.5.jar data.lastra output.parquet
+java -jar target/lastra-convert-1.4.0.jar data.lastra output.parquet
 ```
 
 ### Lastra → CSV
 
 ```bash
-java -jar target/lastra-convert-0.10.5.jar data.lastra output.csv
+java -jar target/lastra-convert-1.4.0.jar data.lastra output.csv
 ```
 
 ### Inspect
 
 ```bash
 # Parquet schema
-java -jar target/lastra-convert-0.10.5.jar data.parquet --inspect
+java -jar target/lastra-convert-1.4.0.jar data.parquet --inspect
 
 # Lastra structure
-java -jar target/lastra-convert-0.10.5.jar data.lastra --inspect
+java -jar target/lastra-convert-1.4.0.jar data.lastra --inspect
 ```
 
 ```
@@ -190,7 +204,7 @@ Tested on real ticker data (11 columns: timestamp + 10 doubles):
 ### Example: BTC/USDT with --best
 
 ```
-$ java -jar target/lastra-convert-0.10.5.jar btc_usdt.parquet --best
+$ java -jar target/lastra-convert-1.4.0.jar btc_usdt.parquet --best
 
   t   → DELTA_VARINT
   opn → PONGO  [ALP=6.5KB, GORILLA=11.6KB, PONGO=5.1KB*]
