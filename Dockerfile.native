@@ -1,0 +1,38 @@
+# GraalVM native-image build of lastra-convert. Produces a single ELF binary
+# packaged in a distroless runtime image.
+#
+# Target platform: Linux x86_64 (build on a 8GB+ RAM Linux host).
+#   docker build --platform linux/amd64 -f Dockerfile.native \
+#     -t qtsurfer/lastra-convert-native:1.3.0 .
+#
+# To extract the binary without running the image:
+#   docker create --name lc-native qtsurfer/lastra-convert-native:1.3.0
+#   docker cp lc-native:/app/lastra-convert ./lastra-convert
+#   docker rm lc-native
+#
+# Note: snappy-java is configured to use systemlib (-Dorg.xerial.snappy.use.systemlib=true)
+# so we install libsnappy in the runtime stage. zstd-jni is statically linked into
+# the binary by native-image so no runtime lib is needed for it.
+
+# --- Stage 1: build the native binary inside the GraalVM CE 25 image. ---
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+WORKDIR /src
+RUN microdnf install -y maven gcc glibc-static zlib-static libstdc++-static || \
+    dnf install -y maven gcc glibc-static zlib-static libstdc++-static
+COPY pom.xml ./
+RUN mvn -B -q dependency:go-offline -Pnative || true
+COPY src ./src
+RUN mvn -B -Pnative -DskipTests package native:compile-no-fork
+
+# --- Stage 2: pull libz + libsnappy (distroless/cc lacks them). ---
+FROM debian:12-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        zlib1g libsnappy1v5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Stage 3: distroless runtime (glibc + libgcc). ---
+FROM gcr.io/distroless/cc-debian12
+COPY --from=deps /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
+COPY --from=deps /usr/lib/x86_64-linux-gnu/libsnappy.so.1 /usr/lib/x86_64-linux-gnu/libsnappy.so.1
+COPY --from=build /src/target/lastra-convert /app/lastra-convert
+ENTRYPOINT ["/app/lastra-convert"]

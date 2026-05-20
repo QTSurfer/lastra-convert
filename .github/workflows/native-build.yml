@@ -1,0 +1,97 @@
+name: native-build
+
+on:
+  push:
+    tags: ['[0-9]*.[0-9]*.[0-9]*']
+  workflow_dispatch:
+
+jobs:
+  jvm-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build + unit tests
+        run: mvn -B verify
+
+  native:
+    needs: jvm-tests
+    if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-amd64
+            binary: lastra-convert
+            asset: lastra-convert-linux-amd64
+          - os: macos-latest
+            label: macos-arm64
+            binary: lastra-convert
+            asset: lastra-convert-macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          cache: 'maven'
+      - name: Build native binary
+        run: mvn -B -Pnative -DskipTests package native:compile-no-fork
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: target/${{ matrix.binary }}
+          retention-days: 1
+
+  release:
+    needs: [jvm-tests, native]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build fat JAR
+        run: mvn -B package -DskipTests
+      - name: Download native binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: native-binaries
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES_FILE=$(ls Changelog/*v${GITHUB_REF_NAME}*.md 2>/dev/null | head -1)
+          if [ -n "$NOTES_FILE" ]; then
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+      - name: Upload fat JAR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JAR=$(ls target/lastra-convert-*.jar | grep -v 'original-' | head -1)
+          gh release upload "$GITHUB_REF_NAME" "$JAR#lastra-convert-${GITHUB_REF_NAME}.jar"
+      - name: Upload native binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mv native-binaries/lastra-convert-linux-amd64/lastra-convert \
+             native-binaries/lastra-convert-linux-amd64/lastra-convert-linux-amd64
+          mv native-binaries/lastra-convert-macos-arm64/lastra-convert \
+             native-binaries/lastra-convert-macos-arm64/lastra-convert-macos-arm64
+          gh release upload "$GITHUB_REF_NAME" \
+            native-binaries/lastra-convert-linux-amd64/lastra-convert-linux-amd64 \
+            native-binaries/lastra-convert-macos-arm64/lastra-convert-macos-arm64

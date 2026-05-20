@@ -1,0 +1,74 @@
+{
+  "reflection": [
+    {
+      "type": "com.github.luben.zstd.AutoCloseBase"
+    },
+    {
+      "type": "com.github.luben.zstd.ZstdOutputStreamNoFinalizer",
+      "jniAccessible": true,
+      "fields": [
+        {"name": "dstPos"},
+        {"name": "srcPos"}
+      ]
+    },
+    {
+      "type": "java.lang.Boolean",
+      "jniAccessible": true,
+      "methods": [
+        {"name": "getBoolean", "parameterTypes": ["java.lang.String"]}
+      ]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.ByteBitPackingBE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.ByteBitPackingForLongBE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.ByteBitPackingForLongLE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.ByteBitPackingLE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.LemireBitPackingBE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.column.values.bitpacking.LemireBitPackingLE",
+      "fields": [{"name": "factory"}]
+    },
+    {
+      "type": "org.apache.parquet.hadoop.codec.SnappyCodec",
+      "methods": [{"name": "<init>", "parameterTypes": []}]
+    },
+    {
+      "type": "org.apache.parquet.hadoop.codec.ZstandardCodec",
+      "methods": [{"name": "<init>", "parameterTypes": []}]
+    },
+    {
+      "type": "shaded.parquet.com.fasterxml.jackson.databind.ext.Java7SupportImpl",
+      "methods": [{"name": "<init>", "parameterTypes": []}]
+    },
+    {
+      "type": "sun.misc.Unsafe",
+      "fields": [{"name": "theUnsafe"}],
+      "methods": [
+        {"name": "invokeCleaner", "parameterTypes": ["java.nio.ByteBuffer"]}
+      ]
+    }
+  ],
+  "resources": [
+    {"glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"},
+    {"glob": "META-INF/maven/org.xerial.snappy/snappy-java/pom.properties"},
+    {"glob": "linux/amd64/libzstd-jni-*.so"},
+    {"glob": "org-xerial-snappy.properties"},
+    {"glob": "org/slf4j/impl/StaticLoggerBinder.class"},
+    {"glob": "org/xerial/snappy/VERSION"},
+    {"glob": "org/xerial/snappy/native/Linux/x86_64/libsnappyjava.so"}
+  ]
+}

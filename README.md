@@ -24,6 +24,35 @@ mvn package
 
 This produces a fat JAR at `target/lastra-convert-0.10.5.jar`.
 
+### Native binary (optional)
+
+Tag pushes also produce a GraalVM native binary (~68 MB, sub-50 ms
+cold-start, no JDK required at runtime). Download
+`lastra-convert-linux-amd64` or `lastra-convert-macos-arm64` from
+the matching GitHub release and run it directly:
+
+```bash
+chmod +x lastra-convert-linux-amd64
+./lastra-convert-linux-amd64 data.parquet --smart
+```
+
+To build the native binary locally (requires GraalVM CE 21+ on
+PATH or via SDKMAN):
+
+```bash
+mvn -Pnative -DskipTests package native:compile-no-fork
+# Binary at target/lastra-convert
+```
+
+Or via Docker (no GraalVM install needed):
+
+```bash
+docker build -f Dockerfile.native -t lastra-convert-native .
+docker create --name lc lastra-convert-native
+docker cp lc:/app/lastra-convert ./lastra-convert
+docker rm lc
+```
+
 ### Usage
 
 ```
