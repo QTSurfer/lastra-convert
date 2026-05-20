@@ -4,3 +4,6 @@ target/
 *.iml
 .idea/
 .DS_Store
+
+# Internal changelog notes (not for public consumption)
+Changelog/
