@@ -22,7 +22,7 @@ Bidirectional converter between [Lastra](https://github.com/QTSurfer/lastra-java
 mvn package
 ```
 
-This produces a fat JAR at `target/lastra-convert-1.4.0.jar`.
+This produces a fat JAR at `target/lastra-convert-x.x.x.jar`.
 
 ### Native binary (optional)
 
