@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.wualabs.qtsurfer</groupId>
+    <groupId>com.qtsurfer</groupId>
     <artifactId>lastra-convert</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
     <packaging>jar</packaging>
 
     <name>QTSurfer Lastra Convert</name>
@@ -39,8 +39,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
-        <lastra.version>0.8.4</lastra.version>
-        <parquet-lite.version>2.0.0</parquet-lite.version>
+        <lastra.version>0.8.5</lastra.version>
+        <parquet-lite.version>2.2.1</parquet-lite.version>
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
     </properties>
@@ -62,12 +62,12 @@
             without any local mvn install of sibling repos.
         -->
         <dependency>
-            <groupId>com.github.QTSurfer</groupId>
+            <groupId>com.qtsurfer</groupId>
             <artifactId>lastra-java</artifactId>
             <version>${lastra.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.QTSurfer</groupId>
+            <groupId>com.qtsurfer</groupId>
             <artifactId>parquet-lite</artifactId>
             <version>${parquet-lite.version}</version>
         </dependency>
