@@ -22,6 +22,7 @@ jobs:
     needs: jvm-tests
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -44,6 +45,9 @@ jobs:
           java-version: '21'
           distribution: 'graalvm'
           cache: 'maven'
+      - name: Configure MSVC toolchain
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
       - name: Build native binary
         run: mvn -B -Pnative -DskipTests package native:compile-no-fork
       - name: Upload native binary
