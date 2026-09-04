@@ -1,0 +1,26 @@
+[
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.ByteBitPackingBE",
+    "fields": [{"name": "factory"}]
+  },
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.ByteBitPackingForLongBE",
+    "fields": [{"name": "factory"}]
+  },
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.ByteBitPackingForLongLE",
+    "fields": [{"name": "factory"}]
+  },
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.ByteBitPackingLE",
+    "fields": [{"name": "factory"}]
+  },
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.LemireBitPackingBE",
+    "fields": [{"name": "factory"}]
+  },
+  {
+    "name": "org.apache.parquet.column.values.bitpacking.LemireBitPackingLE",
+    "fields": [{"name": "factory"}]
+  }
+]
