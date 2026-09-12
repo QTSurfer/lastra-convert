@@ -83,7 +83,15 @@ public final class LastraToCsvConverter implements LastraConverter {
                             line.append(((long[]) columnData[c])[row]);
                             break;
                         case DOUBLE:
-                            line.append(BigDecimal.valueOf(((double[]) columnData[c])[row]).stripTrailingZeros().toPlainString());
+                            double d = ((double[]) columnData[c])[row];
+                            // NaN/Infinity are a legitimate, expected value for a column a producer
+                            // never populated (e.g. a close-only ticker row with no open/high/low) --
+                            // BigDecimal.valueOf(NaN) throws NumberFormatException, so an unpopulated
+                            // column would otherwise crash the whole export instead of just being blank.
+                            if (!Double.isFinite(d)) {
+                                break;
+                            }
+                            line.append(BigDecimal.valueOf(d).stripTrailingZeros().toPlainString());
                             break;
                         case BINARY:
                             String val = new String(((byte[][]) columnData[c])[row], StandardCharsets.UTF_8);
